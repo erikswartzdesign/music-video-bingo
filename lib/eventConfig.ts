@@ -16,8 +16,10 @@ export type Playlist = {
 export type GameConfig = {
   id: string;
   name: string;
-  playlistId: string;
+  playlistId: string; // keep whatever you had
+  displayMode?: DisplayMode; // <-- make it optional
 };
+
 
 export type EventConfig = {
   id: string;
