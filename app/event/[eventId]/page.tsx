@@ -287,8 +287,8 @@ const isLongLabel = trimmed.length > 18;
 
 // Slightly larger fonts for both normal and long labels
 const textSizeClass = isLongLabel
-  ? "text-[0.6rem] sm:text-[0.7rem] md:text-sm"      // long labels
-  : "text-[0.8rem] sm:text-sm md:text-base";         // normal labels
+  ? "text-[0.7rem] sm:text-[0.8rem] md:text-base"     // long labels
+  : "text-[0.9rem] sm:text-base md:text-lg";          // normal labels
 
 
                   return (
