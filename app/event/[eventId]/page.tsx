@@ -283,10 +283,13 @@ export default function EventPage() {
                   const isSelected = entry.selected;
 
                   const trimmed = (rawLabel || "").trim();
-                  const isLongLabel = trimmed.length > 18;
-                  const textSizeClass = isLongLabel
-                    ? "text-[0.55rem] sm:text-[0.6rem] md:text-xs"
-                    : "text-[0.65rem] sm:text-xs md:text-sm";
+const isLongLabel = trimmed.length > 18;
+
+// Slightly larger fonts for both normal and long labels
+const textSizeClass = isLongLabel
+  ? "text-[0.6rem] sm:text-[0.7rem] md:text-sm"      // long labels
+  : "text-[0.8rem] sm:text-sm md:text-base";         // normal labels
+
 
                   return (
                     <button
