@@ -2,18 +2,34 @@
 
 import Link from "next/link";
 
+import Image from "next/image";
+
+
 export default function HomePage() {
   return (
     <main className="min-h-screen flex flex-col items-center justify-center p-4">
-      <h1 className="text-3xl font-bold mb-4">Saba Presents - Music Video Bingo</h1>
-      <p className="mb-4 text-center max-w-md">
-        This is the host & player app prototype. In a real show, players will
-        scan a QR code that takes them directly to tonight&apos;s event URL.
-      </p>
+      <header className="mb-6 flex flex-col items-center text-center">
+        <div className="mb-4">
+          <Image
+            src="/mvb-logo.png"                // file in /public
+            alt="Music Video Bingo logo"
+            width={320}
+            height={80}
+            className="mx-auto h-auto w-80 sm:w-112"
+            priority
+          />
+        </div>
+        <h1 className="text-3xl font-bold mb-2">Music Video Bingo</h1>
+        <p className="mb-2 text-center max-w-md">
+          This is the host & player app prototype. In a real show, players will
+          scan a QR code that takes them directly to tonight&apos;s event URL.
+        </p>
+        <p className="text-center">
+          For now, click below to open a demo event:
+        </p>
+      </header>
+      {/* your existing buttons + rest of content stay below this */}
 
-      <p className="mb-2 text-center">
-        For now, click below to open a demo event:
-      </p>
 
       <Link
         href="/event/demo"
