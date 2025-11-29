@@ -75,7 +75,7 @@ export default function EventPage() {
     {}
   );
 
-  // Generate initial cards on the CLIENT ONLY to avoid hydration mismatch
+  // Generate initial cards on the client ONLY to avoid hydration mismatch
   useEffect(() => {
     if (!eventConfig) return;
 
@@ -83,7 +83,6 @@ export default function EventPage() {
       const next: Record<string, BingoCard> = { ...prev };
 
       for (const game of eventConfig.games) {
-        // Only generate if we don't already have a card for this game
         if (!next[game.id]) {
           const playlist = getPlaylistById(game.playlistId);
           if (playlist) {
@@ -118,21 +117,15 @@ export default function EventPage() {
 
   if (!eventConfig) {
     return (
-      <main
-        className={[
-          "min-h-screen",
-          "flex items-center justify-center",
-          "bg-black text-white",
-        ].join(" ")}
-      >
+      <div className="min-h-screen w-full bg-gradient-to-b from-[#000A3B] to-[#001370] text-slate-100 flex items-center justify-center">
         <div className="text-center space-y-2">
           <h1 className="text-2xl font-bold">Event not found</h1>
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-gray-300">
             There is no event configuration for ID:{" "}
             <span className="font-mono">{eventId}</span>
           </p>
         </div>
-      </main>
+      </div>
     );
   }
 
@@ -182,15 +175,7 @@ export default function EventPage() {
     currentGame?.displayMode ?? "title";
 
   return (
-    <main
-      className={[
-        "min-h-screen",
-        "bg-gradient-to-b from-slate-900 to-black",
-        "text-slate-100",
-        "flex flex-col items-center",
-        "relative",
-      ].join(" ")}
-    >
+    <div className="min-h-screen w-full bg-gradient-to-b from-[#000A3B] to-[#001370] text-slate-100 flex flex-col items-center relative">
       {/* Portrait overlay */}
       {!isLandscape && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 text-slate-100 px-6 text-center">
@@ -203,7 +188,7 @@ export default function EventPage() {
         </div>
       )}
 
-      <section className="w-full max-w-4xl px-4 py-6">
+      <main className="w-full max-w-4xl px-4 py-6">
         <header className="mb-6 text-center">
           <h1 className="text-3xl font-bold mb-2">{eventConfig.name}</h1>
           <p className="text-sm text-slate-300">
@@ -238,7 +223,7 @@ export default function EventPage() {
                 Selected Game:{" "}
                 <span className="font-semibold">{currentGame.name}</span>
               </p>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-300">
                 Playlist:{" "}
                 <span className="font-mono text-slate-200">
                   {currentPlaylist.name}
@@ -254,7 +239,7 @@ export default function EventPage() {
               </p>
             </>
           ) : (
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-slate-300">
               Select a game above to view a card.
             </p>
           )}
@@ -283,29 +268,30 @@ export default function EventPage() {
                   const isSelected = entry.selected;
 
                   const trimmed = (rawLabel || "").trim();
-const isLongLabel = trimmed.length > 18;
+                  const isLongLabel = trimmed.length > 18;
 
-// Slightly larger fonts for both normal and long labels
-const textSizeClass = isLongLabel
-  ? "text-[0.7rem] sm:text-[0.8rem] md:text-base"     // long labels
-  : "text-[0.9rem] sm:text-base md:text-lg";          // normal labels
-
+                  // Bigger fonts across the board, still a bit smaller for long labels
+                  const textSizeClass = isLongLabel
+                    ? "text-[0.7rem] sm:text-[0.8rem] md:text-base"
+                    : "text-[0.9rem] sm:text-base md:text-lg";
 
                   return (
                     <button
-                      key={`${entry.playlistItem.id}-${index}`}
-                      onClick={() => handleToggleSquare(index)}
-                      className={[
-                        "w-full h-16 sm:h-20 md:h-24",
-                        "flex items-center justify-center rounded-md border px-2 py-1.5",
-                        "font-medium text-center leading-tight transition",
-                        isCenterFree
-                          ? "bg-emerald-500 text-black border-emerald-400"
-                          : isSelected
-                          ? "bg-emerald-600 text-black border-emerald-400 shadow-inner"
-                          : "bg-slate-800 text-slate-100 border-slate-600 hover:bg-slate-700",
-                      ].join(" ")}
-                    >
+  key={`${entry.playlistItem.id}-${index}`}
+  onClick={() => handleToggleSquare(index)}
+  className={[
+    "w-full h-16 sm:h-20 md:h-24",
+    "flex items-center justify-center rounded-md border px-2 py-1.5",
+    "font-medium text-center leading-tight transition",
+    "backdrop-blur-md",
+    isCenterFree
+      ? "bg-emerald-400/90 text-black border-emerald-200 shadow-lg"
+      : isSelected
+      ? "bg-emerald-300/80 text-black border-emerald-100 shadow-lg shadow-emerald-500/40"
+      : "bg-white/10 text-slate-100 border-white/20 hover:bg-white/15 hover:border-white/30",
+  ].join(" ")}
+>
+
                       {isCenterFree ? (
                         <span className="font-semibold tracking-wide">
                           FREE
@@ -326,12 +312,12 @@ const textSizeClass = isLongLabel
               </div>
             </div>
           ) : (
-            <p className="text-sm text-slate-400 mt-4">
+            <p className="text-sm text-slate-300 mt-4">
               No card generated yet for this game.
             </p>
           )}
         </div>
-      </section>
-    </main>
+      </main>
+    </div>
   );
 }

@@ -5,7 +5,7 @@ import { EVENTS } from "@/lib/eventConfig";
 
 export default function HostEventsPage() {
   return (
-    <main className="min-h-screen flex flex-col items-center justify-start p-6">
+    <main className="min-h-screen flex flex-col items-center px-4 py-6">
       <h1 className="text-2xl font-bold mb-4">Host – Events</h1>
       <p className="mb-4 text-center max-w-xl">
         This is a simple host view showing all configured events. In the
