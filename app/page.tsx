@@ -15,7 +15,7 @@ export default function HomePage() {
             alt="Music Video Bingo logo"
             width={320}
             height={80}
-            className="mx-auto h-auto w-88 sm:w-128"
+            className="mx-auto h-auto w-104 sm:w-128"
             priority
           />
         </div>
