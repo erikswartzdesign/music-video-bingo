@@ -63,6 +63,8 @@ function generateCardForPlaylist(playlist: PlaylistItem[]): BingoCard {
 export default function EventPage() {
   const params = useParams<{ eventId?: string }>();
   const eventId = params?.eventId ?? "demo";
+  const isTonightPlayerEvent = eventId === "dec-16-2025";
+
 
   const eventConfig = useMemo(() => getEventConfig(eventId), [eventId]);
 
@@ -216,6 +218,7 @@ export default function EventPage() {
         </div>
 
         {/* Info & actions */}
+        {!isTonightPlayerEvent && (
         <div className="mb-4 text-center space-y-1">
           {currentGame && currentPlaylist ? (
             <>
@@ -244,16 +247,20 @@ export default function EventPage() {
             </p>
           )}
         </div>
+        )}
 
         {/* Card + controls */}
-        <div className="flex flex-col items-center gap-4">
-          <button
-            onClick={handleGenerateNewCard}
-            disabled={!currentGame || !currentPlaylist}
-            className="px-4 py-2 rounded-md text-sm font-semibold bg-emerald-500 text-black disabled:bg-slate-700 disabled:text-slate-400 disabled:cursor-not-allowed shadow-md hover:bg-emerald-400 transition"
-          >
-            Generate New Card
-          </button>
+<div className="flex flex-col items-center gap-4">
+  {!isTonightPlayerEvent && (
+    <button
+      onClick={handleGenerateNewCard}
+      disabled={!currentGame || !currentPlaylist}
+      className="px-4 py-2 rounded-md text-sm font-semibold bg-emerald-500 text-black disabled:bg-slate-700 disabled:text-slate-400 disabled:cursor-not-allowed shadow-md hover:bg-emerald-400 transition"
+    >
+      Generate New Card
+    </button>
+  )}
+
 
           {currentCard && currentPlaylist ? (
             <div className="w-full max-w-3xl mx-auto">
