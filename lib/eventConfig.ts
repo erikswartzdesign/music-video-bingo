@@ -90,16 +90,16 @@ export const PLAYLISTS: Playlist[] = [
 // For now, we hard-code one event: "demo".
 export const EVENTS: EventConfig[] = [
   {
-    id: "demo",
-    name: "Demo Night at Pub X",
-    games: [
-      { id: "game1", name: "Game 1", playlistId: "p1" },
-      { id: "game2", name: "Game 2", playlistId: "p2" },
-      { id: "game3", name: "Game 3", playlistId: "p3" },
-      { id: "game4", name: "Game 4", playlistId: "p4" },
-      { id: "game5", name: "Game 5", playlistId: "p5" },
-    ],
-  },
+  id: "dec-16-2025",
+  name: "Windfall Music Video Bingo",
+  games: [
+    { id: "game1", name: "Game 1", playlistId: "p1", displayMode: "artist" },
+    { id: "game2", name: "Game 2", playlistId: "p2", displayMode: "title" },
+    { id: "game3", name: "Game 3", playlistId: "p3", displayMode: "artist" },
+    { id: "game4", name: "Game 4", playlistId: "p4", displayMode: "title" },
+    { id: "game5", name: "Game 5", playlistId: "p5", displayMode: "artist" },
+  ],
+},
   {
     id: "second-demo",
     name: "Second Demo Night at Pub Y",

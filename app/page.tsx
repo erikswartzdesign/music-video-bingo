@@ -21,23 +21,24 @@ export default function HomePage() {
         </div>
         <h1 className="text-3xl font-bold mb-2">Music Video Bingo</h1>
         <p className="mb-2 text-center max-w-md">
-          This is the host & player app prototype. In a real show, players will
-          scan a QR code that takes them directly to tonight&apos;s event URL.
+          This is a TRIAL run of a new mobile experience for Music Video Bingo. Please let me know your thoughts and suggestions on the experience!
         </p>
+        <div className="hidden">
         <p className="text-center">
-          For now, click below to open a demo event:
-        </p>
+          Click the button below for tonight's game cards:
+        </p></div>
       </header>
       {/* your existing buttons + rest of content stay below this */}
 
 
       <Link
-        href="/event/demo"
+        href="/event/dec-16-2025"
         className="mt-2 px-4 py-2 rounded bg-blue-600 text-white font-semibold hover:bg-blue-700"
       >
-        Go to Demo Event
+        GET MY GAME CARDS!
       </Link>
 
+      <div className="hidden">
       <div className="mt-6 text-center">
         <p className="text-sm text-gray-600 mb-1">Host tools:</p>
         <Link
@@ -46,7 +47,7 @@ export default function HomePage() {
         >
           View Events (Host)
         </Link>
-      </div>
+      </div></div>
     </main>
   );
 }
