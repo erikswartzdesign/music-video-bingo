@@ -20,6 +20,29 @@ type BingoCard = {
   entries: CardEntry[];
 };
 
+// =============================
+// Pattern support (Games 2–5)
+// Squares are specified 1–25 (left-to-right, top-to-bottom).
+// We convert to 0–24 indexes internally.
+// FREE (center) is 13 (index 12) and is never included in pattern lists.
+// =============================
+const GAME_PATTERNS_1_TO_25: Record<string, number[]> = {
+  game2: [1, 5, 21, 25],
+  game3: [8, 12, 14, 18],
+  game4: [7, 9, 17, 19],
+  game5: [6, 10, 12, 14, 16, 20],
+};
+
+function getPatternSetForGame(gameId: string | undefined) {
+  if (!gameId) return null;
+  const nums = GAME_PATTERNS_1_TO_25[gameId];
+  if (!nums) return null;
+
+  const set = new Set<number>();
+  for (const n of nums) set.add(n - 1); // 1–25 -> 0–24
+  return set;
+}
+
 function generateCardForPlaylist(playlist: PlaylistItem[]): BingoCard {
   const available = [...playlist];
 
@@ -64,7 +87,6 @@ export default function EventPage() {
   const params = useParams<{ eventId?: string }>();
   const eventId = params?.eventId ?? "demo";
   const isTonightPlayerEvent = eventId === "dec-16-2025";
-
 
   const eventConfig = useMemo(() => getEventConfig(eventId), [eventId]);
 
@@ -176,6 +198,12 @@ export default function EventPage() {
   const selectedDisplayMode: DisplayMode =
     currentGame?.displayMode ?? "title";
 
+  // Pattern logic for current game
+  const currentGameId = currentGame?.id;
+  const patternSet = getPatternSetForGame(currentGameId);
+  const isPatternGame =
+    currentGameId !== undefined && currentGameId !== "game1" && patternSet !== null;
+
   return (
     <div className="min-h-screen w-full bg-gradient-to-b from-[#000A3B] to-[#001370] text-slate-100 flex flex-col items-center relative">
       {/* Portrait overlay */}
@@ -219,48 +247,45 @@ export default function EventPage() {
 
         {/* Info & actions */}
         {!isTonightPlayerEvent && (
-        <div className="mb-4 text-center space-y-1">
-          {currentGame && currentPlaylist ? (
-            <>
-              <p className="text-sm text-slate-200">
-                Selected Game:{" "}
-                <span className="font-semibold">{currentGame.name}</span>
+          <div className="mb-4 text-center space-y-1">
+            {currentGame && currentPlaylist ? (
+              <>
+                <p className="text-sm text-slate-200">
+                  Selected Game:{" "}
+                  <span className="font-semibold">{currentGame.name}</span>
+                </p>
+                <p className="text-xs text-slate-300">
+                  Playlist:{" "}
+                  <span className="font-mono text-slate-200">
+                    {currentPlaylist.name}
+                  </span>{" "}
+                  • Mode:{" "}
+                  <span className="font-semibold">
+                    {currentGame.displayMode === "title" ? "Titles" : "Artists"}
+                  </span>{" "}
+                  • Items:{" "}
+                  <span className="font-mono">{currentPlaylist.items.length}</span>
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-slate-300">
+                Select a game above to view a card.
               </p>
-              <p className="text-xs text-slate-300">
-                Playlist:{" "}
-                <span className="font-mono text-slate-200">
-                  {currentPlaylist.name}
-                </span>{" "}
-                • Mode:{" "}
-                <span className="font-semibold">
-                  {currentGame.displayMode === "title"
-                    ? "Titles"
-                    : "Artists"}
-                </span>{" "}
-                • Items:{" "}
-                <span className="font-mono">{currentPlaylist.items.length}</span>
-              </p>
-            </>
-          ) : (
-            <p className="text-sm text-slate-300">
-              Select a game above to view a card.
-            </p>
-          )}
-        </div>
+            )}
+          </div>
         )}
 
         {/* Card + controls */}
-<div className="flex flex-col items-center gap-4">
-  {!isTonightPlayerEvent && (
-    <button
-      onClick={handleGenerateNewCard}
-      disabled={!currentGame || !currentPlaylist}
-      className="px-4 py-2 rounded-md text-sm font-semibold bg-emerald-500 text-black disabled:bg-slate-700 disabled:text-slate-400 disabled:cursor-not-allowed shadow-md hover:bg-emerald-400 transition"
-    >
-      Generate New Card
-    </button>
-  )}
-
+        <div className="flex flex-col items-center gap-4">
+          {!isTonightPlayerEvent && (
+            <button
+              onClick={handleGenerateNewCard}
+              disabled={!currentGame || !currentPlaylist}
+              className="px-4 py-2 rounded-md text-sm font-semibold bg-emerald-500 text-black disabled:bg-slate-700 disabled:text-slate-400 disabled:cursor-not-allowed shadow-md hover:bg-emerald-400 transition"
+            >
+              Generate New Card
+            </button>
+          )}
 
           {currentCard && currentPlaylist ? (
             <div className="w-full max-w-3xl mx-auto">
@@ -282,27 +307,46 @@ export default function EventPage() {
                     ? "text-[0.7rem] sm:text-[0.8rem] md:text-base"
                     : "text-[0.9rem] sm:text-base md:text-lg";
 
+                  const isPatternSquare = patternSet?.has(index) ?? false;
+
+                  // Color rules:
+                  // - FREE: dull yellow
+                  // - Game 1: selected squares = bright green, otherwise normal tile
+                  // - Games 2–5:
+                  //    - pattern squares (unselected) = dull green
+                  //    - pattern squares (selected) = bright green
+                  //    - non-pattern squares (selected) = dull red
+                  //    - non-pattern squares (unselected) = normal tile
+                  const tileVariantClass = isCenterFree
+                    ? "bg-yellow-400/70 text-black border-yellow-200/70 shadow"
+                    : isPatternGame
+                    ? isSelected
+                      ? isPatternSquare
+                        ? "bg-emerald-400/90 text-black border-emerald-200 shadow-lg shadow-emerald-500/30"
+                        : "bg-red-900/55 text-slate-100 border-red-300/30 shadow"
+                      : isPatternSquare
+                      ? "bg-emerald-600/45 text-slate-100 border-emerald-400/25"
+                      : "bg-white/10 text-slate-100 border-white/20 hover:bg-white/15 hover:border-white/30"
+                    : isSelected
+                    ? "bg-emerald-400/90 text-black border-emerald-200 shadow-lg shadow-emerald-500/30"
+                    : "bg-white/10 text-slate-100 border-white/20 hover:bg-white/15 hover:border-white/30";
+
                   return (
                     <button
-  key={`${entry.playlistItem.id}-${index}`}
-  onClick={() => handleToggleSquare(index)}
-  className={[
-    "w-full h-16 sm:h-20 md:h-24",
-    "flex items-center justify-center rounded-md border px-2 py-1.5",
-    "font-medium text-center leading-tight transition",
-    "backdrop-blur-md",
-    isCenterFree
-      ? "bg-emerald-400/90 text-black border-emerald-200 shadow-lg"
-      : isSelected
-      ? "bg-emerald-300/80 text-black border-emerald-100 shadow-lg shadow-emerald-500/40"
-      : "bg-white/10 text-slate-100 border-white/20 hover:bg-white/15 hover:border-white/30",
-  ].join(" ")}
->
-
+                      key={`${entry.playlistItem.id}-${index}`}
+                      onClick={() => handleToggleSquare(index)}
+                      disabled={isCenterFree}
+                      className={[
+                        "w-full h-16 sm:h-20 md:h-24",
+                        "flex items-center justify-center rounded-md border px-2 py-1.5",
+                        "font-medium text-center leading-tight transition",
+                        "backdrop-blur-md",
+                        isCenterFree ? "cursor-default" : "",
+                        tileVariantClass,
+                      ].join(" ")}
+                    >
                       {isCenterFree ? (
-                        <span className="font-semibold tracking-wide">
-                          FREE
-                        </span>
+                        <span className="font-semibold tracking-wide">FREE</span>
                       ) : (
                         <span
                           className={[
