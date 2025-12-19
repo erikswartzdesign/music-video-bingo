@@ -32,7 +32,7 @@ export default function HomePage() {
 
 
       <Link
-        href="/event/dec-16-2025"
+        href="/event/demo"
         className="mt-2 px-4 py-2 rounded bg-blue-600 text-white font-semibold hover:bg-blue-700"
       >
         GET MY GAME CARDS!

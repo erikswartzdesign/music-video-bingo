@@ -302,42 +302,34 @@ export default function EventPage() {
 
   const handleResetProgress = () => {
   if (typeof window === "undefined") return;
+  if (!currentGame) return;
 
   const ok = window.confirm(
-    "Reset your progress for ALL games in this event? This will clear your selected squares, but keep your card entries the same."
+    `Reset your progress for ${currentGame.name}? This will clear your selected squares for this game only, but keep the card entries the same.`
   );
   if (!ok) return;
 
-  // Clear selections for every saved card in this event (but keep the same entries)
   setCardsByGameId((prev) => {
-    const next: Record<string, BingoCard> = {};
+    const card = prev[currentGame.id];
+    if (!card?.entries || card.entries.length !== 25) return prev;
 
-    for (const [gameId, card] of Object.entries(prev)) {
-      if (!card?.entries || card.entries.length !== 25) continue;
+    const entries = card.entries.map((entry, idx) => {
+      if (idx === 12) {
+        return {
+          playlistItem: { id: -1, title: "FREE", artist: "" },
+          selected: true,
+        };
+      }
+      return { ...entry, selected: false };
+    });
 
-      const entries = card.entries.map((entry, idx) => {
-        if (idx === 12) {
-          return {
-            playlistItem: { id: -1, title: "FREE", artist: "" },
-            selected: true,
-          };
-        }
-        return { ...entry, selected: false };
-      });
-
-      next[gameId] = { ...card, entries };
-    }
-
-    return next;
+    return {
+      ...prev,
+      [currentGame.id]: { ...card, entries },
+    };
   });
-
-  // Also wipe the persisted payload so it re-saves cleanly
-  try {
-    window.localStorage.removeItem(storageKeyForEvent(eventId));
-  } catch {
-    // ignore
-  }
 };
+
 
 
 

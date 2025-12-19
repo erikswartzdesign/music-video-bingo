@@ -47,7 +47,7 @@ const eventConfig = getEventConfig(eventId);
         </p>
 
         <Link
-          href={`/event/${eventConfig.id}/how-to-play`}
+          href={`/how-to-play?venue=${venueSlug}`}
           className="inline-flex items-center justify-center w-full px-4 py-3 rounded-md text-sm font-semibold bg-emerald-500 text-black shadow-md hover:bg-emerald-400 transition"
         >
           How to Play
