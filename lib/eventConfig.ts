@@ -90,7 +90,7 @@ export const PLAYLISTS: Playlist[] = [
 // For now, we hard-code one event: "demo".
 export const EVENTS: EventConfig[] = [
   {
-  id: "dec-16-2025",
+  id: "demo",
   name: "Windfall Music Video Bingo",
   games: [
     { id: "game1", name: "Game 1", playlistId: "p1", displayMode: "artist" },

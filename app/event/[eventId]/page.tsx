@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import {
   DisplayMode,
@@ -18,6 +18,14 @@ type CardEntry = {
 type BingoCard = {
   id: string;
   entries: CardEntry[];
+};
+
+type PersistedStateV1 = {
+  v: 1;
+  eventId: string;
+  selectedGameId: string | null;
+  cardsByGameId: Record<string, BingoCard>;
+  savedAt: number;
 };
 
 // =============================
@@ -83,6 +91,55 @@ function generateCardForPlaylist(playlist: PlaylistItem[]): BingoCard {
   };
 }
 
+function storageKeyForEvent(eventId: string) {
+  return `mvb:playerState:v1:event:${eventId}`;
+}
+
+function safeJsonParse<T>(raw: string | null): T | null {
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
+}
+
+// Ensure the FREE center is always present and selected.
+function normalizeCard(card: BingoCard): BingoCard {
+  if (!card || !Array.isArray(card.entries) || card.entries.length !== 25) return card;
+
+  const entries = card.entries.map((e, idx) => {
+    if (idx === 12) {
+      return {
+        playlistItem: { id: -1, title: "FREE", artist: "" },
+        selected: true,
+      };
+    }
+    // Defensive: if something is missing, patch minimal structure
+    return {
+      playlistItem: {
+        id: (e?.playlistItem as any)?.id ?? -999,
+        title: (e?.playlistItem as any)?.title ?? "",
+        artist: (e?.playlistItem as any)?.artist ?? "",
+      },
+      selected: Boolean((e as any)?.selected),
+    };
+  });
+
+  return { ...card, entries };
+}
+
+function normalizeCardsByGameId(
+  cardsByGameId: Record<string, BingoCard>
+): Record<string, BingoCard> {
+  const next: Record<string, BingoCard> = {};
+  for (const [gameId, card] of Object.entries(cardsByGameId || {})) {
+    if (!card || !Array.isArray(card.entries) || card.entries.length !== 25) continue;
+    next[gameId] = normalizeCard(card);
+  }
+  return next;
+}
+
 export default function EventPage() {
   const params = useParams<{ eventId?: string }>();
   const eventId = params?.eventId ?? "demo";
@@ -90,18 +147,66 @@ export default function EventPage() {
 
   const eventConfig = useMemo(() => getEventConfig(eventId), [eventId]);
 
-  const [selectedGameId, setSelectedGameId] = useState<string | null>(
-    eventConfig?.games[0]?.id ?? null
-  );
+  const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
 
   // Start with no cards; fill them in on the client after mount
   const [cardsByGameId, setCardsByGameId] = useState<Record<string, BingoCard>>(
     {}
   );
 
-  // Generate initial cards on the client ONLY to avoid hydration mismatch
+  // --- Persistence control flags ---
+  const hasRestoredRef = useRef(false);
+  const lastSavedStringRef = useRef<string>("");
+
+  // 1) Restore from localStorage on eventId change (client-only)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    hasRestoredRef.current = false;
+    lastSavedStringRef.current = "";
+
+    const key = storageKeyForEvent(eventId);
+    const raw = window.localStorage.getItem(key);
+    const parsed = safeJsonParse<PersistedStateV1>(raw);
+
+    if (
+      parsed &&
+      parsed.v === 1 &&
+      parsed.eventId === eventId &&
+      parsed.cardsByGameId &&
+      typeof parsed.cardsByGameId === "object"
+    ) {
+      const normalizedCards = normalizeCardsByGameId(parsed.cardsByGameId);
+
+      setCardsByGameId(normalizedCards);
+      setSelectedGameId(parsed.selectedGameId ?? null);
+
+      hasRestoredRef.current = true;
+    } else {
+      // No saved state for this event
+      setCardsByGameId({});
+      setSelectedGameId(null);
+      hasRestoredRef.current = true;
+    }
+  }, [eventId]);
+
+  // 2) Ensure selectedGameId is set once we have eventConfig
   useEffect(() => {
     if (!eventConfig) return;
+
+    setSelectedGameId((prev) => {
+      // Keep existing selection if it's a valid game
+      if (prev && eventConfig.games.some((g) => g.id === prev)) return prev;
+
+      // Otherwise default to first game
+      return eventConfig.games[0]?.id ?? null;
+    });
+  }, [eventConfig]);
+
+  // 3) Generate missing cards (client-only), but DO NOT overwrite restored ones
+  useEffect(() => {
+    if (!eventConfig) return;
+    if (!hasRestoredRef.current) return;
 
     setCardsByGameId((prev) => {
       const next: Record<string, BingoCard> = { ...prev };
@@ -112,12 +217,44 @@ export default function EventPage() {
           if (playlist) {
             next[game.id] = generateCardForPlaylist(playlist.items);
           }
+        } else {
+          // Normalize existing card to enforce FREE square
+          next[game.id] = normalizeCard(next[game.id]);
         }
       }
 
       return next;
     });
   }, [eventConfig]);
+
+  // 4) Save to localStorage whenever state changes (after restore)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!hasRestoredRef.current) return;
+    if (!eventConfig) return;
+
+    // Build persisted payload
+    const payload: PersistedStateV1 = {
+      v: 1,
+      eventId,
+      selectedGameId,
+      cardsByGameId: normalizeCardsByGameId(cardsByGameId),
+      savedAt: Date.now(),
+    };
+
+    const key = storageKeyForEvent(eventId);
+    const json = JSON.stringify(payload);
+
+    // Avoid repeated identical writes
+    if (json === lastSavedStringRef.current) return;
+    lastSavedStringRef.current = json;
+
+    try {
+      window.localStorage.setItem(key, json);
+    } catch {
+      // If storage is full/blocked, fail silently
+    }
+  }, [eventId, eventConfig, selectedGameId, cardsByGameId]);
 
   // Orientation detection for the rotate overlay
   const [isLandscape, setIsLandscape] = useState(true);
@@ -163,16 +300,46 @@ export default function EventPage() {
 
   const currentCard = currentGame ? cardsByGameId[currentGame.id] : null;
 
-  const handleGenerateNewCard = () => {
-    if (!currentGame || !currentPlaylist) return;
+  const handleResetProgress = () => {
+  if (typeof window === "undefined") return;
 
-    const newCard = generateCardForPlaylist(currentPlaylist.items);
+  const ok = window.confirm(
+    "Reset your progress for ALL games in this event? This will clear your selected squares, but keep your card entries the same."
+  );
+  if (!ok) return;
 
-    setCardsByGameId((prev) => ({
-      ...prev,
-      [currentGame.id]: newCard,
-    }));
-  };
+  // Clear selections for every saved card in this event (but keep the same entries)
+  setCardsByGameId((prev) => {
+    const next: Record<string, BingoCard> = {};
+
+    for (const [gameId, card] of Object.entries(prev)) {
+      if (!card?.entries || card.entries.length !== 25) continue;
+
+      const entries = card.entries.map((entry, idx) => {
+        if (idx === 12) {
+          return {
+            playlistItem: { id: -1, title: "FREE", artist: "" },
+            selected: true,
+          };
+        }
+        return { ...entry, selected: false };
+      });
+
+      next[gameId] = { ...card, entries };
+    }
+
+    return next;
+  });
+
+  // Also wipe the persisted payload so it re-saves cleanly
+  try {
+    window.localStorage.removeItem(storageKeyForEvent(eventId));
+  } catch {
+    // ignore
+  }
+};
+
+
 
   const handleToggleSquare = (index: number) => {
     if (!currentGame || !currentCard) return;
@@ -195,14 +362,24 @@ export default function EventPage() {
     });
   };
 
-  const selectedDisplayMode: DisplayMode =
-    currentGame?.displayMode ?? "title";
+  const selectedDisplayMode: DisplayMode = currentGame?.displayMode ?? "title";
+  const playlistNumber = currentGame?.playlistId?.match(/\d+/)?.[0] ?? null;
+
+  const playlistLabel = playlistNumber
+    ? `Playlist ${playlistNumber}`
+    : currentGame?.playlistId
+    ? `Playlist (${currentGame.playlistId})`
+    : "Playlist";
+
+  const modeLabel = selectedDisplayMode === "title" ? "Title" : "Artist";
 
   // Pattern logic for current game
   const currentGameId = currentGame?.id;
   const patternSet = getPatternSetForGame(currentGameId);
   const isPatternGame =
-    currentGameId !== undefined && currentGameId !== "game1" && patternSet !== null;
+    currentGameId !== undefined &&
+    currentGameId !== "game1" &&
+    patternSet !== null;
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-b from-[#000A3B] to-[#001370] text-slate-100 flex flex-col items-center relative">
@@ -212,8 +389,8 @@ export default function EventPage() {
           <div className="mb-4 text-4xl">🔄</div>
           <h2 className="text-xl font-semibold mb-2">Rotate Your Phone</h2>
           <p className="text-sm text-slate-300 max-w-xs">
-            For the best Music Video Bingo experience, please rotate your
-            device to landscape.
+            For the best Music Video Bingo experience, please rotate your device
+            to landscape.
           </p>
         </div>
       )}
@@ -245,50 +422,27 @@ export default function EventPage() {
           ))}
         </div>
 
-        {/* Info & actions */}
-        {!isTonightPlayerEvent && (
-          <div className="mb-4 text-center space-y-1">
-            {currentGame && currentPlaylist ? (
-              <>
-                <p className="text-sm text-slate-200">
-                  Selected Game:{" "}
-                  <span className="font-semibold">{currentGame.name}</span>
-                </p>
-                <p className="text-xs text-slate-300">
-                  Playlist:{" "}
-                  <span className="font-mono text-slate-200">
-                    {currentPlaylist.name}
-                  </span>{" "}
-                  • Mode:{" "}
-                  <span className="font-semibold">
-                    {currentGame.displayMode === "title" ? "Titles" : "Artists"}
-                  </span>{" "}
-                  • Items:{" "}
-                  <span className="font-mono">{currentPlaylist.items.length}</span>
-                </p>
-              </>
-            ) : (
-              <p className="text-sm text-slate-300">
-                Select a game above to view a card.
-              </p>
-            )}
-          </div>
-        )}
-
         {/* Card + controls */}
         <div className="flex flex-col items-center gap-4">
-          {!isTonightPlayerEvent && (
-            <button
-              onClick={handleGenerateNewCard}
-              disabled={!currentGame || !currentPlaylist}
-              className="px-4 py-2 rounded-md text-sm font-semibold bg-emerald-500 text-black disabled:bg-slate-700 disabled:text-slate-400 disabled:cursor-not-allowed shadow-md hover:bg-emerald-400 transition"
-            >
-              Generate New Card
-            </button>
-          )}
 
           {currentCard && currentPlaylist ? (
             <div className="w-full max-w-3xl mx-auto">
+              <div className="mb-2 text-center text-base sm:text-lg md:text-xl text-slate-200">
+                <span className="font-semibold">{playlistLabel}</span>
+                <span className="text-slate-400"> • </span>
+                <span className="font-semibold">{modeLabel}</span>
+              </div>
+
+              <div className="mb-3 flex justify-center">
+    <button
+      type="button"
+      onClick={handleResetProgress}
+      className="px-2.5 py-1 rounded text-xs font-semibold bg-orange-800 text-orange-50 border border-orange-600 shadow hover:bg-orange-700 hover:border-orange-500 transition"
+    >
+      Reset Progress
+    </button>
+  </div>
+
               <div className="grid grid-cols-5 gap-[2px] sm:gap-1 md:gap-2">
                 {currentCard.entries.map((entry, index) => {
                   const isCenterFree = index === 12;
@@ -302,21 +456,12 @@ export default function EventPage() {
                   const trimmed = (rawLabel || "").trim();
                   const isLongLabel = trimmed.length > 18;
 
-                  // Bigger fonts across the board, still a bit smaller for long labels
                   const textSizeClass = isLongLabel
                     ? "text-[0.7rem] sm:text-[0.8rem] md:text-base"
                     : "text-[0.9rem] sm:text-base md:text-lg";
 
                   const isPatternSquare = patternSet?.has(index) ?? false;
 
-                  // Color rules:
-                  // - FREE: dull yellow
-                  // - Game 1: selected squares = bright green, otherwise normal tile
-                  // - Games 2–5:
-                  //    - pattern squares (unselected) = dull green
-                  //    - pattern squares (selected) = bright green
-                  //    - non-pattern squares (selected) = dull red
-                  //    - non-pattern squares (unselected) = normal tile
                   const tileVariantClass = isCenterFree
                     ? "bg-yellow-400/70 text-black border-yellow-200/70 shadow"
                     : isPatternGame
