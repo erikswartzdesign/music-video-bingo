@@ -48,7 +48,7 @@ export default function HowToPlayClient() {
         <section className="rounded-2xl border border-white/15 bg-white/5 backdrop-blur-md shadow-lg p-5 sm:p-7">
           <h2 className="text-2xl font-semibold mb-3">Instructions For Mobile Play</h2>
 
-          <ul className="space-y-6 text-xl text-slate-200 leading-relaxed">
+          <ul className="space-y-8 text-xl text-slate-200 leading-relaxed">
             <li>
               *** Please read through these instructions so you are aware of how to play the game on your mobile device! ***
             </li>
@@ -75,6 +75,9 @@ export default function HowToPlayClient() {
               • If you accidentally hit an incorrect square, just tap it again to clear it. If you need to clear the entire card, use the Reset Progress button.<br />
               <span className="italic">NOTE: This will only clear all of the selected squares from the card, but will not generate a new card for you.</span>
             </li>
+            <li>
+              • Finally, you will not need to see the host for a new card each time a new game starts. Once you click the <span className="font-semibold">"Get My Cards"</span> button, you have all of you game cards ready to go. Even if you close down the browser, switch to another app, or lose internet connection, the cards and progress will still be there when you get back in.
+            </li>
           </ul>
 
           {/* Action button */}
@@ -89,7 +92,7 @@ export default function HowToPlayClient() {
 
           {/* Small footer note */}
           <p className="mt-4 text-center text-xs text-slate-400">
-            Your card and selections are saved on this device during the event.
+            Your card and selections are saved on this device during the event. They will delete off your device soon after the event ends.
           </p>
         </section>
       </main>
