@@ -21,7 +21,7 @@ export default function HowToPlayClient() {
 
   // For now, we always route to demo.
   // Later this becomes: active venue -> eventId from DB (Supabase) or mapping.
-  const eventId = "demo";
+  const eventId = "dec-22-2025";
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-b from-[#000A3B] to-[#001370] text-slate-100">

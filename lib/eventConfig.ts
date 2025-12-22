@@ -33,7 +33,13 @@ import {
   PLAYLIST_3,
   PLAYLIST_4,
   PLAYLIST_5,
+  PLAYLIST_6,
+  PLAYLIST_7,
+  PLAYLIST_8,
+  PLAYLIST_9,
+  PLAYLIST_10,
 } from "./realPlaylists";
+
 
 
 
@@ -81,6 +87,37 @@ export const PLAYLISTS: Playlist[] = [
     displayMode: "title",
     items: PLAYLIST_5,
   },
+  {
+  id: "p6",
+  name: "Playlist 6 – Title",
+  displayMode: "title",
+  items: PLAYLIST_6,
+},
+{
+  id: "p7",
+  name: "Playlist 7 – Artist",
+  displayMode: "artist",
+  items: PLAYLIST_7,
+},
+{
+  id: "p8",
+  name: "Playlist 8 – Title",
+  displayMode: "title",
+  items: PLAYLIST_8,
+},
+{
+  id: "p9",
+  name: "Playlist 9 – Artist",
+  displayMode: "artist",
+  items: PLAYLIST_9,
+},
+{
+  id: "p10",
+  name: "Playlist 10 – Title",
+  displayMode: "title",
+  items: PLAYLIST_10,
+},
+
 ];
 
 
@@ -111,6 +148,18 @@ export const EVENTS: EventConfig[] = [
       { id: "game5", name: "Late Game – Titles", playlistId: "p5" },
     ],
   },
+  {
+  id: "dec-22-2025", // or whatever ID you want
+  name: "Music Video Bingo – Dec 22, 2025",
+  games: [
+    { id: "game1", name: "Game 1", playlistId: "p6", displayMode: "title" },
+    { id: "game2", name: "Game 2", playlistId: "p7", displayMode: "artist" },
+    { id: "game3", name: "Game 3", playlistId: "p8", displayMode: "title" },
+    { id: "game4", name: "Game 4", playlistId: "p9", displayMode: "artist" },
+    { id: "game5", name: "Game 5", playlistId: "p10", displayMode: "title" },
+  ],
+},
+
 ];
 
 // --- Helper functions -----------------------------------------------------
