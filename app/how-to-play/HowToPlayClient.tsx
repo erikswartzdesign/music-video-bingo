@@ -49,7 +49,7 @@ export default function HowToPlayClient() {
 
           <ul className="space-y-8 text-xl text-slate-200 leading-relaxed">
             <li>
-              <span className="text-yellow-400">*** Please read through these instructions so you are aware of how to play the game on your mobile device!</span>
+              <span className="text-yellow-400 font-semibold">Please read through these instructions so you are aware of how to play the game on your mobile device!</span>
             </li>
             <li>
               • After reading through the instructions, click the "Get My Cards" button.
