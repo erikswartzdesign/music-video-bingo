@@ -31,7 +31,7 @@ export default function HowToPlayClient() {
           {/* Optional logo if you have it in /public */}
           {/* <img src="/mvb-logo.png" alt="Music Video Bingo" className="h-16 mx-auto mb-4" /> */}
 
-          <h1 className="text-5xl sm:text-5xl text-yellow-400 font-bold">How to Play</h1>
+          <h1 className="text-5xl sm:text-5xl text-cyan-400 font-bold">How to Play</h1>
 
           {venueTitle ? (
             <p className="mt-2 text-slate-300">
@@ -46,11 +46,10 @@ export default function HowToPlayClient() {
 
         {/* Instructions Card */}
         <section className="rounded-2xl border border-white/15 bg-white/5 backdrop-blur-md shadow-lg p-5 sm:p-7">
-          <h2 className="text-3xl text-cyan-400 font-semibold mb-3">Instructions For Mobile Play</h2>
 
           <ul className="space-y-8 text-xl text-slate-200 leading-relaxed">
             <li>
-              *** Please read through these instructions so you are aware of how to play the game on your mobile device! ***
+              <span className="text-yellow-400">*** Please read through these instructions so you are aware of how to play the game on your mobile device!</span>
             </li>
             <li>
               • After reading through the instructions, click the "Get My Cards" button.
