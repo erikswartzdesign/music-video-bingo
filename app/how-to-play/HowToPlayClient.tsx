@@ -48,7 +48,7 @@ export default function HowToPlayClient() {
         <section className="rounded-2xl border border-white/15 bg-white/5 backdrop-blur-md shadow-lg p-5 sm:p-7">
           <h2 className="text-xl font-semibold mb-3">Instructions For Mobile Play</h2>
 
-          <ul className="space-y-6 text-slate-200 leading-relaxed">
+          <ul className="space-y-6 text-lg text-slate-200 leading-relaxed">
             <li>
               *** Please read through these instructions so you are aware of how to play the game on your mobile device! ***
             </li>
