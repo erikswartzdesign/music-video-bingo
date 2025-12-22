@@ -75,15 +75,16 @@ export default function VenueWelcomePage() {
           />
         </div>
 
-        <h1 className="text-3xl font-bold mb-2">Music Video Bingo</h1>
-        <p className="text-lg text-slate-300 mb-8">{venueTitle}</p>
+        <h1 className="text-4xl font-bold mb-2">Music Video Bingo</h1>
+        <p className="text-2xl text-slate-300 mb-8">{venueTitle}</p>
 
         <Link
-  href={`/how-to-play?venue=${encodeURIComponent(venueSlug)}`}
-  className="inline-flex items-center justify-center w-full px-4 py-3 rounded-md text-sm font-semibold bg-emerald-500 text-black shadow-md hover:bg-emerald-400 transition"
+  href={`/how-to-play?venue=${venueSlug}`}
+  className="inline-flex items-center justify-center w-full max-w-[220px] mx-auto px-6 py-3 rounded-md text-lg font-semibold bg-emerald-500 text-black shadow-md hover:bg-emerald-400 transition"
 >
   How to Play
 </Link>
+
 
 
 
