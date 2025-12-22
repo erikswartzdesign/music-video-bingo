@@ -84,15 +84,15 @@ export default function HowToPlayClient() {
           <div className="mt-6 flex justify-center">
             <Link
               href={`/event/${eventId}`}
-              className="inline-flex items-center justify-center px-6 py-3 rounded-lg font-semibold bg-emerald-500 text-black shadow-md hover:bg-emerald-400 transition"
+              className="inline-flex items-center justify-center w-full px-6 py-3 rounded-lg font-semibold bg-emerald-500 text-black shadow-md hover:bg-emerald-400 transition"
             >
               Get My Cards
             </Link>
           </div>
 
           {/* Small footer note */}
-          <p className="mt-4 text-center text-xs text-slate-400">
-            Your card and selections are saved on this device during the event. They will delete off your device soon after the event ends.
+          <p className="mt-4 text-center text-xl text-slate-400">
+            Thanks for playing, and GOOD LUCK!
           </p>
         </section>
       </main>
