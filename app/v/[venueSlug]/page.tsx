@@ -66,7 +66,7 @@ export default function VenueWelcomePage() {
       <div className="w-full max-w-md text-center">
         <div className="mb-6 flex justify-center">
           <Image
-            src="/mvb-logo.png"
+            src="/Windfall-W.png"
             alt="Music Video Bingo logo"
             width={520}
             height={160}
