@@ -31,7 +31,7 @@ export default function HowToPlayClient() {
           {/* Optional logo if you have it in /public */}
           {/* <img src="/mvb-logo.png" alt="Music Video Bingo" className="h-16 mx-auto mb-4" /> */}
 
-          <h1 className="text-5xl sm:text-5xl text-cyan-400 font-bold">How to Play</h1>
+          <h1 className="text-5xl sm:text-5xl text-blue-400 font-bold">How to Play</h1>
 
           {venueTitle ? (
             <p className="mt-2 text-slate-300">
@@ -90,7 +90,7 @@ export default function HowToPlayClient() {
           </div>
 
           {/* Small footer note */}
-          <p className="mt-4 text-center text-xl text-slate-400">
+          <p className="mt-4 text-center text-xl text-yellow-400">
             Thanks for playing, and GOOD LUCK!
           </p>
         </section>
