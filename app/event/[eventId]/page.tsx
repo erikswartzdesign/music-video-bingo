@@ -37,7 +37,7 @@ type PersistedStateV1 = {
 const GAME_PATTERNS_1_TO_25: Record<string, number[]> = {
   game2: [1, 5, 21, 25],
   game3: [8, 12, 14, 18],
-  game4: [7, 9, 17, 19],
+  game4: [2, 4, 8, 18, 22, 24],
   game5: [6, 10, 12, 14, 16, 20],
 };
 
