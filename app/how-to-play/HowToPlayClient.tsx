@@ -72,7 +72,7 @@ export default function HowToPlayClient() {
             </li>
             <li>
               • If you accidentally hit an incorrect square, just tap it again to clear it. If you need to clear the entire card, use the Reset Progress button.<br />
-              <span className="italic">NOTE: This will only clear all of the selected squares from the card, but will not generate a new card for you.</span>
+              <span className="italic text-blue-400">NOTE: This will only clear all of the selected squares from the card, but will not generate a new card for you.</span>
             </li>
             <li>
               • Finally, you will not need to see the host for a new card each time a new game starts. Once you click the <span className="font-semibold">"Get My Cards"</span> button, you have all of you game cards ready to go. Even if you close down the browser, switch to another app, or lose internet connection, the cards and progress will still be there when you get back in.
