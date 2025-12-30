@@ -185,7 +185,7 @@ function buildEventConfigFromDb(
         playlistId: r.playlist_key,
         displayMode: (r.display_mode ?? "title") as DisplayMode,
         patternId: r.pattern_id ?? null,
-        patternCells: undefined, // ✅ was null
+        patternCells: undefined,
         isBonus: false,
       };
     });
@@ -199,7 +199,7 @@ function buildEventConfigFromDb(
       playlistId: bonus.playlist_key,
       displayMode: (bonus.display_mode ?? "title") as DisplayMode,
       patternId: null,
-      patternCells: undefined, // ✅ was null
+      patternCells: undefined,
       isBonus: true,
     });
   }
@@ -215,7 +215,7 @@ export default function EventPage() {
   const params = useParams<{ eventId?: string }>();
   const eventCode = params?.eventId ?? "";
 
-  // ✅ Local-first: if a hardcoded event exists for this URL code, use it and bypass Supabase.
+  // Local-first: if a hardcoded event exists for this URL code, use it and bypass Supabase.
   const localEvent = useMemo(() => getEventConfig(eventCode), [eventCode]);
   const useLocalOnly = Boolean(localEvent);
 
@@ -243,7 +243,7 @@ export default function EventPage() {
         return;
       }
 
-      // ✅ Local-only: skip Supabase entirely.
+      // Local-only: skip Supabase entirely.
       if (useLocalOnly) {
         if (!cancelled) {
           setDbEvent(null);
@@ -381,7 +381,7 @@ export default function EventPage() {
 
   // Prefer Local event by URL; else DB; else legacy config_key mapping
   const eventConfig: EventConfigExt | null = useMemo(() => {
-    // ✅ 1) Local-first
+    // 1) Local-first
     if (localEvent) {
       return {
         id: localEvent.id,
@@ -395,12 +395,12 @@ export default function EventPage() {
       };
     }
 
-    // ✅ 2) DB-driven
+    // 2) DB-driven
     if (dbEvent && dbGames && dbGames.length > 0) {
       return buildEventConfigFromDb(dbEvent, dbGames, dbBonus);
     }
 
-    // ✅ 3) Legacy config_key
+    // 3) Legacy config_key
     if (!configKey) return null;
 
     const legacy = getEventConfig(configKey);
@@ -664,6 +664,17 @@ export default function EventPage() {
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-b from-[#000A3B] to-[#001370] text-slate-100 flex flex-col items-center relative">
+      {/* ✅ Restored orientation overlay */}
+      {!isLandscape && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 text-slate-100 px-6 text-center">
+          <div className="mb-4 text-4xl">🔄</div>
+          <h2 className="text-xl font-semibold mb-2">Rotate Your Phone</h2>
+          <p className="text-sm text-slate-300 max-w-xs">
+            For the best Music Video Bingo experience, please rotate your device to landscape.
+          </p>
+        </div>
+      )}
+
       <main className="w-full max-w-4xl px-4 py-6">
         <header className="mb-6 text-center">
           <h1 className="text-3xl font-bold mb-2">{headerTitle}</h1>

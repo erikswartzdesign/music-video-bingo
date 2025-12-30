@@ -30,8 +30,8 @@ export default async function WelcomePage({
       <div className="w-full max-w-md text-center">
         <div className="mb-6 flex justify-center">
           <Image
-            src="/mvb-logo.png"
-            alt="Music Video Bingo logo"
+            src="/Elation-Ent-V1.png"
+            alt="Elation Entertainment logo"
             width={480}
             height={140}
             className="h-auto w-80 sm:w-96"
