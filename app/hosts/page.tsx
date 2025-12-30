@@ -1,53 +1,68 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 
-// TEMP ONLY (mock "database")
-// username = venue slug (or venue name), password = temp password
-const TEMP_HOST_CREDENTIALS: Record<string, { password: string; venueSlug: string }> = {
-  "denver-taphouse": { password: "changeme123", venueSlug: "denver-taphouse" },
-  "demo-venue": { password: "demo123", venueSlug: "demo-venue" },
+type VenueRow = {
+  slug: string;
+  name: string | null;
 };
 
-// TEMP ONLY (global message area)
-// Replace this later with DB-driven notices (Supabase)
-const IMPORTANT_MESSAGES: string[] = [
-  "Welcome! This is the host portal prototype.",
-  "If you have issues logging in, contact your admin for a password reset.",
-  "Reminder: Events auto-expire after the configured end time.",
-];
-
 export default function HostsLandingPage() {
-  const router = useRouter();
+  const [venues, setVenues] = useState<VenueRow[]>([]);
+  const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [errMsg, setErrMsg] = useState<string | null>(null);
 
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  useEffect(() => {
+    let cancelled = false;
 
-  const [error, setError] = useState<string | null>(null);
+    async function loadVenues() {
+      setLoading(true);
+      setErrMsg(null);
 
-  const normalizedUsername = useMemo(() => username.trim().toLowerCase(), [username]);
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase
+          .from("venues")
+          .select("slug,name")
+          .order("name", { ascending: true });
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
+        if (cancelled) return;
 
-    const record = TEMP_HOST_CREDENTIALS[normalizedUsername];
+        if (error) {
+          setErrMsg("Could not load venues.");
+          setVenues([]);
+          setLoading(false);
+          return;
+        }
 
-    if (!record) {
-      setError("Unknown venue username.");
-      return;
+        setVenues((data ?? []) as VenueRow[]);
+        setLoading(false);
+      } catch {
+        if (cancelled) return;
+        setErrMsg("Could not load venues.");
+        setVenues([]);
+        setLoading(false);
+      }
     }
 
-    if (password !== record.password) {
-      setError("Incorrect password.");
-      return;
-    }
+    loadVenues();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-    // Send host to their venue dashboard (we’ll build this page next)
-    router.push(`/host/${record.venueSlug}`);
-  };
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return venues;
+    return venues.filter((v) => {
+      const name = (v.name ?? "").toLowerCase();
+      return v.slug.toLowerCase().includes(q) || name.includes(q);
+    });
+  }, [venues, query]);
 
   return (
     <main className="min-h-screen w-full bg-gradient-to-b from-[#000A3B] to-[#001370] text-slate-100 flex items-center justify-center px-6 py-10">
@@ -55,7 +70,7 @@ export default function HostsLandingPage() {
         <div className="text-center mb-6">
           <div className="flex justify-center mb-4">
             <Image
-              src="/mvb-logo.png"
+              src="/Elation-Ent-V1.png"
               alt="Music Video Bingo logo"
               width={520}
               height={160}
@@ -64,78 +79,51 @@ export default function HostsLandingPage() {
             />
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-bold">Host Login</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">Host Portal</h1>
           <p className="text-sm text-slate-300 mt-2">
-            Enter your venue username and password to manage tonight&apos;s event.
+            Select your venue to manage tonight&apos;s event.
+          </p>
+          <p className="text-[11px] text-slate-400 mt-2">
+            (Prototype access — we’ll add real login later.)
           </p>
         </div>
 
         <section className="bg-white/10 border border-white/15 rounded-xl p-5 sm:p-6 backdrop-blur-md shadow-lg">
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-200 mb-1">
-                Username
-              </label>
-              <input
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="e.g., denver-taphouse"
-                className="w-full rounded-md bg-black/30 border border-white/15 px-3 py-2 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/70"
-                autoCapitalize="none"
-                autoCorrect="off"
-                spellCheck={false}
-              />
-            </div>
+          <label className="block text-sm font-medium text-slate-200 mb-2">Search</label>
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Type venue name or slug"
+            className="w-full rounded-md bg-black/30 border border-white/15 px-3 py-2 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/70"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+          />
 
-            <div>
-              <label className="block text-sm font-medium text-slate-200 mb-1">
-                Password
-              </label>
-              <input
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                type="password"
-                placeholder="Temporary password"
-                className="w-full rounded-md bg-black/30 border border-white/15 px-3 py-2 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/70"
-              />
-            </div>
-
-            {error && (
-              <div className="rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
-                {error}
+          <div className="mt-4">
+            {loading ? (
+              <p className="text-sm text-slate-300">Loading venues…</p>
+            ) : errMsg ? (
+              <p className="text-sm text-red-200">{errMsg}</p>
+            ) : filtered.length ? (
+              <div className="space-y-2">
+                {filtered.map((v) => (
+                  <Link
+                    key={v.slug}
+                    href={`/host/${v.slug}`}
+                    className="block rounded-md border border-white/15 bg-black/20 px-3 py-3 hover:bg-black/30 transition"
+                  >
+                    <div className="text-sm font-semibold text-slate-100">
+                      {v.name ?? v.slug}
+                    </div>
+                    <div className="text-xs text-slate-400 font-mono">{v.slug}</div>
+                  </Link>
+                ))}
               </div>
+            ) : (
+              <p className="text-sm text-slate-300">No venues found.</p>
             )}
-
-            <button
-              type="submit"
-              className="w-full inline-flex items-center justify-center px-4 py-3 rounded-md text-sm font-semibold bg-emerald-500 text-black shadow-md hover:bg-emerald-400 transition"
-            >
-              Log In
-            </button>
-
-            <p className="text-[11px] text-slate-400 text-center">
-              (Prototype login only — this is not real security yet.)
-            </p>
-          </form>
-        </section>
-
-        <section className="mt-5 bg-white/10 border border-white/15 rounded-xl p-5 sm:p-6 backdrop-blur-md">
-          <h2 className="text-sm font-semibold text-slate-100 mb-3">
-            Important Messages
-          </h2>
-
-          {IMPORTANT_MESSAGES.length ? (
-            <ul className="space-y-2 text-sm text-slate-200">
-              {IMPORTANT_MESSAGES.map((msg, idx) => (
-                <li key={idx} className="flex gap-2">
-                  <span className="mt-[2px] text-emerald-300">•</span>
-                  <span>{msg}</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-slate-300">No messages right now.</p>
-          )}
+          </div>
         </section>
       </div>
     </main>
