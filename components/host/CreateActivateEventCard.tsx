@@ -25,6 +25,12 @@ type Props = {
   patternsById: Record<number, string>;
   playlistOptions: PlaylistOption[];
 
+  // Bonus ("" = none)
+  bonusPlaylistKey: string;
+  setBonusPlaylistKey: (v: string) => void;
+  bonusDisplayMode: DisplayMode;
+  setBonusDisplayMode: (v: DisplayMode) => void;
+
   onCreateAndActivate: () => void;
 };
 
@@ -43,8 +49,15 @@ export default function CreateActivateEventCard({
   patterns,
   patternsById,
   playlistOptions,
+  bonusPlaylistKey,
+  setBonusPlaylistKey,
+  bonusDisplayMode,
+  setBonusDisplayMode,
   onCreateAndActivate,
 }: Props) {
+  const bonusEnabled = Boolean(String(bonusPlaylistKey || "").trim());
+  const canSubmit = Boolean(String(venueSlug || "").trim());
+
   return (
     <section className="bg-white/10 border border-white/15 rounded-xl p-5 sm:p-6 backdrop-blur-md shadow-lg">
       <h2 className="text-lg font-semibold">Create & Activate Event</h2>
@@ -91,7 +104,6 @@ export default function CreateActivateEventCard({
         </div>
       </div>
 
-      {/* Divider above Game Setup */}
       <SectionDivider />
 
       {/* Game setup */}
@@ -190,26 +202,84 @@ export default function CreateActivateEventCard({
             </div>
           ))}
         </div>
+      </div>
 
-        <p className="mt-3 text-[11px] text-slate-400">
-          “No Pattern” stores <span className="font-mono">pattern_id = null</span> in{" "}
-          <span className="font-mono">event_games</span>.
-        </p>
+      {/* BONUS GAME (after Game 5) */}
+      <div className="mt-6 rounded-lg border border-orange-300/25 bg-orange-400/50 p-4 ring-1 ring-orange-200/10">
+        <div className="flex items-center justify-between">
+          <div className="text-sm font-semibold">Bonus Game</div>
+          <div className="text-[11px] text-slate-400">Optional</div>
+        </div>
+
+        <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-medium text-slate-300 mb-1">Playlist</label>
+            <select
+              value={bonusPlaylistKey}
+              onChange={(e) => setBonusPlaylistKey(e.target.value)}
+              className="w-full rounded-md bg-black/30 border border-white/15 px-3 py-2 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-400/70"
+            >
+              <option value="">No Bonus</option>
+              {playlistOptions.map((opt) => (
+                <option key={opt.id} value={opt.id}>
+                  {opt.label} ({opt.id})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-slate-300 mb-1">Mode</label>
+            <select
+              value={bonusDisplayMode}
+              onChange={(e) => setBonusDisplayMode(e.target.value as DisplayMode)}
+              disabled={!bonusEnabled}
+              className={[
+                "w-full rounded-md bg-black/30 border border-white/15 px-3 py-2 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-400/70",
+                !bonusEnabled ? "opacity-60 cursor-not-allowed" : "",
+              ].join(" ")}
+            >
+              <option value="title">Title</option>
+              <option value="artist">Artist</option>
+            </select>
+
+            {!bonusEnabled ? (
+              <p className="mt-1 text-[11px] text-slate-400">
+                Choose a bonus playlist to enable mode.
+              </p>
+            ) : null}
+          </div>
+        </div>
       </div>
 
       <div className="mt-5">
-        <button
-          type="button"
-          onClick={onCreateAndActivate}
-          disabled={!venueSlug}
+        {/* NOT a <button> — cannot submit/reload */}
+        <div
+          role="button"
+          tabIndex={0}
+          aria-disabled={!canSubmit}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!canSubmit) return;
+            onCreateAndActivate();
+          }}
+          onKeyDown={(e) => {
+            if (!canSubmit) return;
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              e.stopPropagation();
+              onCreateAndActivate();
+            }
+          }}
           className={[
-            "inline-flex items-center justify-center px-4 py-3 rounded-md text-sm font-semibold shadow-md transition",
+            "inline-flex items-center justify-center px-4 py-3 rounded-md text-sm font-semibold shadow-md transition select-none",
             "bg-emerald-500 text-black hover:bg-emerald-400",
-            !venueSlug ? "opacity-60 pointer-events-none" : "",
+            !canSubmit ? "opacity-60 pointer-events-none" : "cursor-pointer",
           ].join(" ")}
         >
           Create & Activate Tonight
-        </button>
+        </div>
       </div>
     </section>
   );

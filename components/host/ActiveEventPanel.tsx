@@ -29,11 +29,11 @@ type ActiveEventPanelProps = {
   loading: boolean;
 
   venueSlug: string;
-  venueNameDisplay?: string; // ✅ optional (fixes your build error)
+  venueNameDisplay?: string;
 
   activeEvent: ActiveEvent | null;
 
-  // these are currently being passed by app/host/[venueSlug]/page.tsx
+  // optional urls / names
   activeEventDisplayName?: string;
   activePlayerWelcomeUrl?: string;
   activeHowToPlayUrl?: string;
@@ -76,17 +76,9 @@ async function copyToClipboard(text: string) {
 }
 
 export default function ActiveEventPanel(props: ActiveEventPanelProps) {
-  const {
-    loading,
-    venueSlug,
-    activeEvent,
-    onRefresh,
-    onEndEvent,
-    formatStartAt,
-  } = props;
+  const { loading, venueSlug, activeEvent, onRefresh, onEndEvent, formatStartAt } = props;
 
-  const venueNameDisplay =
-    safeString((props as any).venueNameDisplay) || venueSlug || "Venue";
+  const venueNameDisplay = safeString((props as any).venueNameDisplay) || venueSlug || "Venue";
 
   const activeEventDisplayName =
     safeString(props.activeEventDisplayName) ||
@@ -137,8 +129,6 @@ export default function ActiveEventPanel(props: ActiveEventPanelProps) {
     setConfigLoading(true);
 
     try {
-      // If you already have a config endpoint, this will work.
-      // If not, the UI will show a helpful error when clicked.
       const res = await fetch("/api/host/events/config", {
         method: "POST",
         headers: { "content-type": "application/json" },

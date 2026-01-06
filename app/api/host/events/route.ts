@@ -180,7 +180,7 @@ function normalizeGames(input: PostGameBody[] | undefined | null) {
       game_number: gameNumber,
       playlist_key: parsed.normalized,
       display_mode: displayMode,
-      pattern_id: gameNumber === 1 ? null : patternId,
+      pattern_id: gameNumber === 1 || gameNumber === 6 ? null : patternId,
     });
   }
 

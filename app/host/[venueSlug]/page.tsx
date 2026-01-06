@@ -35,6 +35,12 @@ export default function HostVenueDashboardPage() {
     setGames,
     updateGame,
 
+    // NEW: bonus form
+    bonusPlaylistKey,
+    setBonusPlaylistKey,
+    bonusDisplayMode,
+    setBonusDisplayMode,
+
     // patterns + options
     patterns,
     patternsById,
@@ -94,6 +100,11 @@ export default function HostVenueDashboardPage() {
               patterns={patterns}
               patternsById={patternsById}
               playlistOptions={playlistOptions}
+              // NEW: bonus props
+              bonusPlaylistKey={bonusPlaylistKey}
+              setBonusPlaylistKey={setBonusPlaylistKey}
+              bonusDisplayMode={bonusDisplayMode}
+              setBonusDisplayMode={setBonusDisplayMode}
               onCreateAndActivate={createAndActivate}
             />
 
@@ -113,6 +124,7 @@ export default function HostVenueDashboardPage() {
               loading={loading}
               activeEvent={activeEvent}
               venueSlug={venueSlug}
+              venueNameDisplay={venueNameDisplay}
               activeEventDisplayName={activeEventDisplayName}
               activePlayerWelcomeUrl={activePlayerWelcomeUrl}
               activeHowToPlayUrl={activeHowToPlayUrl}
@@ -122,6 +134,8 @@ export default function HostVenueDashboardPage() {
               onRefresh={refresh}
               onEndEvent={deactivateAll}
               formatStartAt={formatStartAt}
+              // NEW: give bonus editor the same dropdown options
+              playlistOptions={playlistOptions}
             />
 
             <SectionDivider />
@@ -130,14 +144,6 @@ export default function HostVenueDashboardPage() {
               title="Scheduled Events"
               subtitle="(Supabase)"
               tip="Tip: Use Load Configuration to reuse a setup, then click Create Event."
-/* tip={
-  <>
-    Tip: Use <span className="font-semibold">Load Configuration</span> to reuse a
-    setup, then click{" "}
-    ...
-  </>
-} */
-
               loading={loading}
               events={scheduledEvents}
               expandedByCode={expandedByCode}

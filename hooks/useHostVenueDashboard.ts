@@ -31,6 +31,10 @@ export function useHostVenueDashboard(venueSlug: string) {
   // DB-driven game setup (1–5)
   const [games, setGames] = useState<HostGameForm[]>(defaultGames());
 
+  // BONUS form ("" = none) — stored as Game 6 in event_games
+  const [bonusPlaylistKey, setBonusPlaylistKey] = useState<string>("");
+  const [bonusDisplayMode, setBonusDisplayMode] = useState<"title" | "artist">("title");
+
   // DB patterns for dropdown
   const [patterns, setPatterns] = useState<DbPatternRow[]>([]);
 
@@ -116,6 +120,7 @@ export function useHostVenueDashboard(venueSlug: string) {
     const byNum = new Map<number, DbEventGameRow>();
     for (const r of rows) byNum.set(Number(r.game_number), r);
 
+    // Load Games 1–5 into the form
     const next: HostGameForm[] = base.map((g) => {
       const row = byNum.get(g.gameNumber);
       if (!row) return g;
@@ -129,6 +134,12 @@ export function useHostVenueDashboard(venueSlug: string) {
     });
 
     setGames(next);
+
+    // Load BONUS from Game 6 (if present)
+    const b = byNum.get(6);
+    setBonusPlaylistKey(b?.playlist_key ? String(b.playlist_key) : "");
+    setBonusDisplayMode((b?.display_mode ?? "title") as "title" | "artist");
+
     setErrMsg(null);
   }
 
@@ -270,7 +281,8 @@ export function useHostVenueDashboard(venueSlug: string) {
   const completedEvents = useMemo(() => events.filter((e) => e.status === "completed"), [events]);
 
   const activeEventDisplayName =
-    activeEvent?.name?.trim() || (activeEvent ? `${venueNameDisplay} — ${activeEvent.event_code}` : "");
+    activeEvent?.name?.trim() ||
+    (activeEvent ? `${venueNameDisplay} — ${activeEvent.event_code}` : "");
 
   const activePlayerWelcomeUrl = activeEvent ? absoluteUrl(`/v/${venueSlug}`) : "";
   const activeHowToPlayUrl = activeEvent
@@ -291,6 +303,25 @@ export function useHostVenueDashboard(venueSlug: string) {
       return;
     }
 
+    // Build payload: Games 1–5
+    const payloadGames = games.map((g) => ({
+      gameNumber: g.gameNumber,
+      playlistKey: g.playlistKey,
+      displayMode: g.displayMode,
+      patternId: g.patternId,
+    }));
+
+    // Append Bonus as Game 6 if selected
+    const bonusKey = String(bonusPlaylistKey || "").trim();
+    if (bonusKey) {
+      payloadGames.push({
+        gameNumber: 6,
+        playlistKey: bonusKey,
+        displayMode: bonusDisplayMode,
+        patternId: null,
+      });
+    }
+
     try {
       const res = await fetch("/api/host/events", {
         method: "POST",
@@ -301,18 +332,13 @@ export function useHostVenueDashboard(venueSlug: string) {
           configKey: configKey.trim() ? configKey.trim() : null,
           name: eventName.trim() ? eventName.trim() : null,
           makeActive: true,
-          games: games.map((g) => ({
-            gameNumber: g.gameNumber,
-            playlistKey: g.playlistKey,
-            displayMode: g.displayMode,
-            patternId: g.patternId,
-          })),
+          games: payloadGames,
         }),
       });
 
-      const json = await res.json();
+      const json = await res.json().catch(() => null);
       if (!res.ok) {
-        setErrMsg(json?.error ?? "Failed to create/activate event.");
+        setErrMsg((json as any)?.error ?? "Failed to create/activate event.");
         return;
       }
 
@@ -333,9 +359,9 @@ export function useHostVenueDashboard(venueSlug: string) {
         body: JSON.stringify({ venueSlug }),
       });
 
-      const json = await res.json();
+      const json = await res.json().catch(() => null);
       if (!res.ok) {
-        setErrMsg(json?.error ?? "Failed to deactivate.");
+        setErrMsg((json as any)?.error ?? "Failed to deactivate.");
         return;
       }
 
@@ -371,6 +397,12 @@ export function useHostVenueDashboard(venueSlug: string) {
     setGames,
     updateGame,
 
+    // BONUS form state
+    bonusPlaylistKey,
+    setBonusPlaylistKey,
+    bonusDisplayMode,
+    setBonusDisplayMode,
+
     // event config display
     eventGamesByCode,
     expandedByCode,
@@ -382,7 +414,7 @@ export function useHostVenueDashboard(venueSlug: string) {
     createAndActivate,
     deactivateAll,
 
-    // copy
+    // copy panel
     copiedKey,
     copyToClipboard,
     activeEventDisplayName,
