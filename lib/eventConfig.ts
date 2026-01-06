@@ -178,10 +178,10 @@ export const EVENTS: EventConfig[] = [
       { id: "game1", name: "Game 1", playlistId: "p11", displayMode: "artist" },
 
       // Games 2–5 with patterns (edit if you want different ones)
-      { id: "game2", name: "Game 2", playlistId: "p12", displayMode: "title", patternCells: [7, 9, 17, 19] },
-      { id: "game3", name: "Game 3", playlistId: "p13", displayMode: "artist",  patternCells: [3, 11, 15, 23] },
-      { id: "game4", name: "Game 4", playlistId: "p14", displayMode: "title", patternCells: [5, 9, 11, 15, 17, 21] },
-      { id: "game5", name: "Game 5", playlistId: "p15", displayMode: "artist",  patternCells: [2, 6, 8, 18, 20, 24] },
+      { id: "game2", name: "Game 2", playlistId: "p12", displayMode: "title", patternCells: [2, 4, 22, 24] },
+      { id: "game3", name: "Game 3", playlistId: "p13", displayMode: "artist",  patternCells: [6, 10, 16, 20] },
+      { id: "game4", name: "Game 4", playlistId: "p14", displayMode: "title", patternCells: [3, 7, 9, 17, 19, 23] },
+      { id: "game5", name: "Game 5", playlistId: "p15", displayMode: "artist",  patternCells: [6, 10, 12, 14, 16, 20] },
     ],
   },
 
