@@ -303,12 +303,17 @@ export function useHostVenueDashboard(venueSlug: string) {
       return;
     }
 
-    // Build payload: Games 1–5
-    const payloadGames = games.map((g) => ({
+        // Build payload: Games 1–5
+    const payloadGames: {
+      gameNumber: number;
+      playlistKey: string;
+      displayMode: "title" | "artist";
+      patternId: number | null;
+    }[] = games.map((g) => ({
       gameNumber: g.gameNumber,
       playlistKey: g.playlistKey,
-      displayMode: g.displayMode,
-      patternId: g.patternId,
+      displayMode: g.displayMode as "title" | "artist",
+      patternId: (g.patternId ?? null) as number | null,
     }));
 
     // Append Bonus as Game 6 if selected
@@ -321,6 +326,7 @@ export function useHostVenueDashboard(venueSlug: string) {
         patternId: null,
       });
     }
+
 
     try {
       const res = await fetch("/api/host/events", {
