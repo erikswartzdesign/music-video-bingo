@@ -16,7 +16,7 @@ export type Playlist = {
 export type GameConfig = {
   id: string;
   name: string;
-  playlistId: string; // keep whatever you had
+  playlistId: string;
   displayMode?: DisplayMode; // optional override per game
   /**
    * Optional hardcoded pattern for this game (local-only mode).
@@ -43,6 +43,14 @@ import {
   PLAYLIST_8,
   PLAYLIST_9,
   PLAYLIST_10,
+  PLAYLIST_11,
+  PLAYLIST_12,
+  PLAYLIST_13,
+  PLAYLIST_14,
+  PLAYLIST_15,
+  // keeping these in case you still have them
+  PLAYLIST_16,
+  PLAYLIST_17,
 } from "./realPlaylists";
 
 // --- Demo playlists -------------------------------------------------------
@@ -108,6 +116,52 @@ export const PLAYLISTS: Playlist[] = [
     displayMode: "title",
     items: PLAYLIST_10,
   },
+
+  // NEW: p11–p15
+  {
+    id: "p11",
+    name: "Playlist 11 – Artist",
+    displayMode: "artist",
+    items: PLAYLIST_11,
+  },
+  {
+    id: "p12",
+    name: "Playlist 12 – Title",
+    displayMode: "title",
+    items: PLAYLIST_12,
+  },
+  {
+    id: "p13",
+    name: "Playlist 13 – Artist",
+    displayMode: "artist",
+    items: PLAYLIST_13,
+  },
+  {
+    id: "p14",
+    name: "Playlist 14 – Title",
+    displayMode: "title",
+    items: PLAYLIST_14,
+  },
+  {
+    id: "p15",
+    name: "Playlist 15 – Artist",
+    displayMode: "artist",
+    items: PLAYLIST_15,
+  },
+
+  // Keeping these (optional)
+  {
+    id: "p16",
+    name: "Playlist 16 – Title",
+    displayMode: "title",
+    items: PLAYLIST_16,
+  },
+  {
+    id: "p17",
+    name: "Playlist 17 – Artist",
+    displayMode: "artist",
+    items: PLAYLIST_17,
+  },
 ];
 
 // --- Demo events ----------------------------------------------------------
@@ -115,11 +169,27 @@ export const PLAYLISTS: Playlist[] = [
 // Eventually, you'll generate these from a host UI & DB.
 // For now, we hard-code events.
 export const EVENTS: EventConfig[] = [
+  // TONIGHT (hard-coded)
+  {
+    id: "jan-06-2026",
+    name: "Music Video Bingo — Jan 6, 2026",
+    games: [
+      // Game 1 typically no pattern
+      { id: "game1", name: "Game 1", playlistId: "p11", displayMode: "artist" },
+
+      // Games 2–5 with patterns (edit if you want different ones)
+      { id: "game2", name: "Game 2", playlistId: "p12", displayMode: "title", patternCells: [7, 9, 17, 19] },
+      { id: "game3", name: "Game 3", playlistId: "p13", displayMode: "artist",  patternCells: [3, 11, 15, 23] },
+      { id: "game4", name: "Game 4", playlistId: "p14", displayMode: "title", patternCells: [5, 9, 11, 15, 17, 21] },
+      { id: "game5", name: "Game 5", playlistId: "p15", displayMode: "artist",  patternCells: [2, 6, 8, 18, 20, 24] },
+    ],
+  },
+
+  // Existing
   {
     id: "dec-30-2025",
     name: "Windfall Music Video Bingo",
     games: [
-      // NOTE: patternCells are 1–25. Center FREE is 13 (ignored).
       { id: "game1", name: "Game 1", playlistId: "p1", displayMode: "artist" },
       { id: "game2", name: "Game 2", playlistId: "p6", displayMode: "title",  patternCells: [7, 9, 17, 19] },
       { id: "game3", name: "Game 3", playlistId: "p3", displayMode: "artist", patternCells: [3, 11, 15, 23] },
