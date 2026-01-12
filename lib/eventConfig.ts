@@ -57,33 +57,63 @@ import {
 
 export const PLAYLISTS: Playlist[] = [
   {
-    id: "p1",
+    id: "p1T",
     name: "Playlist 1 – Title",
     displayMode: "title",
     items: PLAYLIST_1,
   },
   {
-    id: "p2",
+    id: "p1A",
+    name: "Playlist 1 – Artist",
+    displayMode: "artist",
+    items: PLAYLIST_1,
+  },
+  {
+    id: "p2T",
+    name: "Playlist 2 – Title",
+    displayMode: "title",
+    items: PLAYLIST_2,
+  },
+  {
+    id: "p2A",
     name: "Playlist 2 – Artist",
     displayMode: "artist",
     items: PLAYLIST_2,
   },
   {
-    id: "p3",
+    id: "p3T",
     name: "Playlist 3 – Title",
     displayMode: "title",
     items: PLAYLIST_3,
   },
   {
-    id: "p4",
+    id: "p3A",
+    name: "Playlist 3 – Artist",
+    displayMode: "artist",
+    items: PLAYLIST_3,
+  },
+  {
+    id: "p4T",
+    name: "Playlist 4 – Title",
+    displayMode: "title",
+    items: PLAYLIST_4,
+  },
+  {
+    id: "p4A",
     name: "Playlist 4 – Artist",
     displayMode: "artist",
     items: PLAYLIST_4,
   },
   {
-    id: "p5",
+    id: "p5T",
     name: "Playlist 5 – Title",
     displayMode: "title",
+    items: PLAYLIST_5,
+  },
+  {
+    id: "p5A",
+    name: "Playlist 5 – Artist",
+    displayMode: "artist",
     items: PLAYLIST_5,
   },
   {
@@ -171,17 +201,17 @@ export const PLAYLISTS: Playlist[] = [
 export const EVENTS: EventConfig[] = [
   // TONIGHT (hard-coded)
   {
-    id: "jan-06-2026",
-    name: "Music Video Bingo — Jan 6, 2026",
+    id: "jan-13-2026",
+    name: "Music Video Bingo — Jan 13, 2026",
     games: [
       // Game 1 typically no pattern
-      { id: "game1", name: "Game 1", playlistId: "p11", displayMode: "artist" },
+      { id: "game1", name: "Game 1", playlistId: "p1T", displayMode: "title" },
 
       // Games 2–5 with patterns (edit if you want different ones)
-      { id: "game2", name: "Game 2", playlistId: "p12", displayMode: "title", patternCells: [2, 4, 22, 24] },
-      { id: "game3", name: "Game 3", playlistId: "p13", displayMode: "artist",  patternCells: [6, 10, 16, 20] },
-      { id: "game4", name: "Game 4", playlistId: "p14", displayMode: "title", patternCells: [3, 7, 9, 17, 19, 23] },
-      { id: "game5", name: "Game 5", playlistId: "p15", displayMode: "artist",  patternCells: [6, 10, 12, 14, 16, 20] },
+      { id: "game2", name: "Game 2", playlistId: "p2A", displayMode: "artist", patternCells: [1, 5, 21, 25] },
+      { id: "game3", name: "Game 3", playlistId: "p3T", displayMode: "title",  patternCells: [8, 12, 14, 18] },
+      { id: "game4", name: "Game 4", playlistId: "p4A", displayMode: "artist", patternCells: [2, 4, 8, 18, 22, 24] },
+      { id: "game5", name: "Game 5", playlistId: "p5T", displayMode: "title",  patternCells: [5, 9, 11, 15, 17, 21] },
     ],
   },
 

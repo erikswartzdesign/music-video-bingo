@@ -54,7 +54,7 @@ export default async function WelcomePage({
 
         <div className="mt-3">
           <Link
-            href={`/event/${eventId}`}
+            href={`/event/${encodeURIComponent(eventId)}`}
             className="inline-flex items-center justify-center w-full px-4 py-3 rounded-md text-sm font-semibold bg-slate-100/10 text-slate-100 border border-white/20 shadow-md hover:bg-slate-100/15 hover:border-white/30 transition"
           >
             Get My Cards
