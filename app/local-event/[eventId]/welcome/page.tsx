@@ -1,42 +1,29 @@
 import Image from "next/image";
 import Link from "next/link";
 import { getEventConfig } from "@/lib/eventConfig";
-import { getEventConfigFromDb } from "@/lib/eventConfigDb";
 
-export default async function WelcomePage({
+export default async function LocalWelcomePage({
   params,
 }: {
   params: Promise<{ eventId: string }>;
 }) {
   const { eventId } = await params;
 
-  // Supabase-first (but fail-safe)
-  let dbConfig: Awaited<ReturnType<typeof getEventConfigFromDb>> = null;
-  try {
-    dbConfig = await getEventConfigFromDb(eventId);
-  } catch {
-    dbConfig = null;
-  }
+  const eventConfig = getEventConfig(eventId);
 
-  // Local fallback
-  const localConfig = getEventConfig(eventId);
-
-  // Decide what to display (prefer event name if DB found)
-  const displayName = dbConfig?.eventName ?? localConfig?.name ?? null;
-
-  if (!displayName) {
+  if (!eventConfig) {
     return (
       <div className="min-h-screen w-full bg-gradient-to-b from-[#000A3B] to-[#001370] text-slate-100 flex items-center justify-center px-6">
         <div className="text-center space-y-2">
-          <h1 className="text-2xl font-bold">Event not found</h1>
+          <h1 className="text-2xl font-bold">Local event not found</h1>
           <p className="text-sm text-slate-300">
-            No event configuration for ID:{" "}
+            No local configuration for ID:{" "}
             <span className="font-mono text-slate-200">{eventId}</span>
           </p>
           <p className="text-xs text-slate-400">
-            If this is a local one-off, try:{" "}
+            If this is a real hosted event, use:{" "}
             <span className="font-mono text-slate-200">
-              /local-event/{eventId}/welcome
+              /event/{eventId}/welcome
             </span>
           </p>
         </div>
@@ -62,25 +49,12 @@ export default async function WelcomePage({
 
         <p className="text-sm text-slate-300 mb-2">
           Tonight’s event:{" "}
-          <span className="text-slate-100 font-semibold">{displayName}</span>
+          <span className="text-slate-100 font-semibold">
+            {eventConfig.name}
+          </span>
         </p>
 
-        {/* Tiny status line so you can tell which mode loaded */}
-        <p className="text-xs text-slate-400 mb-6">
-          {dbConfig ? (
-            <>
-              Source: <span className="text-slate-200">Supabase</span>{" "}
-              <span className="text-slate-500">•</span> Event code:{" "}
-              <span className="font-mono text-slate-200">{eventId}</span>
-            </>
-          ) : (
-            <>
-              Source: <span className="text-slate-200">Local fallback</span>{" "}
-              <span className="text-slate-500">•</span> Event ID:{" "}
-              <span className="font-mono text-slate-200">{eventId}</span>
-            </>
-          )}
-        </p>
+        <p className="text-xs text-amber-200/90 mb-6">Local One-Off Mode</p>
 
         <Link
           href={`/how-to-play?eventId=${encodeURIComponent(eventId)}`}

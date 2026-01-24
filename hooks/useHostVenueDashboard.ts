@@ -15,6 +15,12 @@ import type {
   VenueRow,
 } from "@/lib/host/types";
 
+type DbBonusRow = {
+  event_id: string;
+  playlist_key: string;
+  display_mode: "title" | "artist" | null;
+};
+
 export function useHostVenueDashboard(venueSlug: string) {
   const [loading, setLoading] = useState(true);
   const [venue, setVenue] = useState<VenueRow | null>(null);
@@ -24,25 +30,36 @@ export function useHostVenueDashboard(venueSlug: string) {
   // Create event form
   const [eventDate, setEventDate] = useState<string>(todayISO());
   const [configKey, setConfigKey] = useState<string>(
-    process.env.NEXT_PUBLIC_DEFAULT_CONFIG_KEY || "dec-22-2025"
+    process.env.NEXT_PUBLIC_DEFAULT_CONFIG_KEY || "dec-22-2025",
   );
   const [eventName, setEventName] = useState<string>("");
 
   // DB-driven game setup (1–5)
   const [games, setGames] = useState<HostGameForm[]>(defaultGames());
 
-  // BONUS form ("" = none) — stored as Game 6 in event_games
+  // Bonus form ("" = none)
   const [bonusPlaylistKey, setBonusPlaylistKey] = useState<string>("");
-  const [bonusDisplayMode, setBonusDisplayMode] = useState<"title" | "artist">("title");
+  const [bonusDisplayMode, setBonusDisplayMode] = useState<"title" | "artist">(
+    "title",
+  );
 
   // DB patterns for dropdown
   const [patterns, setPatterns] = useState<DbPatternRow[]>([]);
 
-  // Event games: event_code -> rows
-  const [eventGamesByCode, setEventGamesByCode] = useState<Record<string, DbEventGameRow[]>>({});
+  // Event games: event_code -> rows (includes 1–6 when present)
+  const [eventGamesByCode, setEventGamesByCode] = useState<
+    Record<string, DbEventGameRow[]>
+  >({});
+
+  // Bonus config: event_code -> derived from event_games row where game_number = 6
+  const [eventBonusByCode, setEventBonusByCode] = useState<
+    Record<string, DbBonusRow | null>
+  >({});
 
   // Expand/collapse config view per event
-  const [expandedByCode, setExpandedByCode] = useState<Record<string, boolean>>({});
+  const [expandedByCode, setExpandedByCode] = useState<Record<string, boolean>>(
+    {},
+  );
 
   // For absolute copy URLs
   const [origin, setOrigin] = useState<string>("");
@@ -71,8 +88,13 @@ export function useHostVenueDashboard(venueSlug: string) {
     return map;
   }, [patterns]);
 
-  function updateGame(gameNumber: HostGameForm["gameNumber"], patch: Partial<HostGameForm>) {
-    setGames((prev) => prev.map((g) => (g.gameNumber === gameNumber ? { ...g, ...patch } : g)));
+  function updateGame(
+    gameNumber: HostGameForm["gameNumber"],
+    patch: Partial<HostGameForm>,
+  ) {
+    setGames((prev) =>
+      prev.map((g) => (g.gameNumber === gameNumber ? { ...g, ...patch } : g)),
+    );
   }
 
   function absoluteUrl(path: string) {
@@ -99,7 +121,10 @@ export function useHostVenueDashboard(venueSlug: string) {
 
       setCopiedKey(keyForFeedback);
       if (copiedTimerRef.current) window.clearTimeout(copiedTimerRef.current);
-      copiedTimerRef.current = window.setTimeout(() => setCopiedKey(null), 1500);
+      copiedTimerRef.current = window.setTimeout(
+        () => setCopiedKey(null),
+        1500,
+      );
     } catch {
       setErrMsg("Copy failed (browser blocked clipboard).");
     }
@@ -120,23 +145,27 @@ export function useHostVenueDashboard(venueSlug: string) {
     const byNum = new Map<number, DbEventGameRow>();
     for (const r of rows) byNum.set(Number(r.game_number), r);
 
-    // Load Games 1–5 into the form
     const next: HostGameForm[] = base.map((g) => {
       const row = byNum.get(g.gameNumber);
       if (!row) return g;
 
-      const playlistKey = String(row.playlist_key ?? g.playlistKey).trim() || g.playlistKey;
+      const playlistKey =
+        String(row.playlist_key ?? g.playlistKey).trim() || g.playlistKey;
       const displayMode = (row.display_mode ?? g.displayMode) as any;
       const patternId =
-        g.gameNumber === 1 ? null : row.pattern_id === undefined ? g.patternId : row.pattern_id;
+        g.gameNumber === 1
+          ? null
+          : row.pattern_id === undefined
+            ? g.patternId
+            : row.pattern_id;
 
       return { ...g, playlistKey, displayMode, patternId };
     });
 
     setGames(next);
 
-    // Load BONUS from Game 6 (if present)
-    const b = byNum.get(6);
+    // ALSO load bonus (if present) — derived from event_games game_number = 6
+    const b = eventBonusByCode[eventCode] ?? null;
     setBonusPlaylistKey(b?.playlist_key ? String(b.playlist_key) : "");
     setBonusDisplayMode((b?.display_mode ?? "title") as "title" | "artist");
 
@@ -162,6 +191,7 @@ export function useHostVenueDashboard(venueSlug: string) {
         setVenue(null);
         setEvents([]);
         setEventGamesByCode({});
+        setEventBonusByCode({});
         setErrMsg("Venue not found in database.");
         setLoading(false);
         return;
@@ -180,6 +210,7 @@ export function useHostVenueDashboard(venueSlug: string) {
       if (eErr) {
         setEvents([]);
         setEventGamesByCode({});
+        setEventBonusByCode({});
         setErrMsg("Could not load events.");
         setLoading(false);
         return;
@@ -188,10 +219,11 @@ export function useHostVenueDashboard(venueSlug: string) {
       const list = (evts ?? []) as EventRow[];
       setEvents(list);
 
-      // Fetch event_games for these events
+      // Fetch event_games for these events (includes game 6 if present)
       const ids = list.map((e) => e.id).filter(Boolean);
       if (ids.length === 0) {
         setEventGamesByCode({});
+        setEventBonusByCode({});
         setLoading(false);
         return;
       }
@@ -204,6 +236,7 @@ export function useHostVenueDashboard(venueSlug: string) {
 
       if (gErr) {
         setEventGamesByCode({});
+        setEventBonusByCode({});
         setLoading(false);
         return;
       }
@@ -223,17 +256,31 @@ export function useHostVenueDashboard(venueSlug: string) {
       }
 
       const byCode: Record<string, DbEventGameRow[]> = {};
+      const byCodeBonus: Record<string, DbBonusRow | null> = {};
+
       for (const e of list) {
         const rowsForEvent = byEventId[e.id] ?? [];
         if (rowsForEvent.length) byCode[e.event_code] = rowsForEvent;
+
+        const bonusRow = rowsForEvent.find((r) => Number(r.game_number) === 6);
+        byCodeBonus[e.event_code] = bonusRow
+          ? {
+              event_id: e.id,
+              playlist_key: String(bonusRow.playlist_key ?? ""),
+              display_mode: (bonusRow.display_mode ?? null) as any,
+            }
+          : null;
       }
+
       setEventGamesByCode(byCode);
+      setEventBonusByCode(byCodeBonus);
 
       setLoading(false);
     } catch {
       setVenue(null);
       setEvents([]);
       setEventGamesByCode({});
+      setEventBonusByCode({});
       setErrMsg("Could not load venue/events.");
       setLoading(false);
     }
@@ -276,15 +323,26 @@ export function useHostVenueDashboard(venueSlug: string) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [venueSlug]);
 
-  const activeEvent = useMemo(() => events.find((e) => e.status === "active") ?? null, [events]);
-  const scheduledEvents = useMemo(() => events.filter((e) => e.status === "scheduled"), [events]);
-  const completedEvents = useMemo(() => events.filter((e) => e.status === "completed"), [events]);
+  const activeEvent = useMemo(
+    () => events.find((e) => e.status === "active") ?? null,
+    [events],
+  );
+  const scheduledEvents = useMemo(
+    () => events.filter((e) => e.status === "scheduled"),
+    [events],
+  );
+  const completedEvents = useMemo(
+    () => events.filter((e) => e.status === "completed"),
+    [events],
+  );
 
   const activeEventDisplayName =
     activeEvent?.name?.trim() ||
     (activeEvent ? `${venueNameDisplay} — ${activeEvent.event_code}` : "");
 
-  const activePlayerWelcomeUrl = activeEvent ? absoluteUrl(`/v/${venueSlug}`) : "";
+  const activePlayerWelcomeUrl = activeEvent
+    ? absoluteUrl(`/v/${venueSlug}`)
+    : "";
   const activeHowToPlayUrl = activeEvent
     ? absoluteUrl(`/how-to-play?venue=${encodeURIComponent(venueSlug)}`)
     : "";
@@ -303,30 +361,18 @@ export function useHostVenueDashboard(venueSlug: string) {
       return;
     }
 
-        // Build payload: Games 1–5
-    const payloadGames: {
-      gameNumber: number;
-      playlistKey: string;
-      displayMode: "title" | "artist";
-      patternId: number | null;
-    }[] = games.map((g) => ({
-      gameNumber: g.gameNumber,
-      playlistKey: g.playlistKey,
-      displayMode: g.displayMode as "title" | "artist",
-      patternId: (g.patternId ?? null) as number | null,
-    }));
-
-    // Append Bonus as Game 6 if selected
+    // Bonus -> game 6 (optional)
     const bonusKey = String(bonusPlaylistKey || "").trim();
-    if (bonusKey) {
-      payloadGames.push({
-        gameNumber: 6,
-        playlistKey: bonusKey,
-        displayMode: bonusDisplayMode,
-        patternId: null,
-      });
-    }
-
+    const bonusRow = bonusKey
+      ? [
+          {
+            gameNumber: 6,
+            playlistKey: bonusKey,
+            displayMode: bonusDisplayMode,
+            patternId: null,
+          },
+        ]
+      : [];
 
     try {
       const res = await fetch("/api/host/events", {
@@ -338,15 +384,25 @@ export function useHostVenueDashboard(venueSlug: string) {
           configKey: configKey.trim() ? configKey.trim() : null,
           name: eventName.trim() ? eventName.trim() : null,
           makeActive: true,
-          games: payloadGames,
+          games: [
+            ...games.map((g) => ({
+              gameNumber: g.gameNumber,
+              playlistKey: g.playlistKey,
+              displayMode: g.displayMode,
+              patternId: g.patternId,
+            })),
+            ...bonusRow,
+          ],
         }),
       });
 
-      const json = await res.json().catch(() => null);
+      const json = await res.json();
       if (!res.ok) {
-        setErrMsg((json as any)?.error ?? "Failed to create/activate event.");
+        setErrMsg(json?.error ?? "Failed to create/activate event.");
         return;
       }
+
+      // No separate bonus endpoint anymore. Bonus is stored as event_games.game_number = 6.
 
       setEventName("");
       await refresh();
@@ -365,9 +421,9 @@ export function useHostVenueDashboard(venueSlug: string) {
         body: JSON.stringify({ venueSlug }),
       });
 
-      const json = await res.json().catch(() => null);
+      const json = await res.json();
       if (!res.ok) {
-        setErrMsg((json as any)?.error ?? "Failed to deactivate.");
+        setErrMsg(json?.error ?? "Failed to deactivate.");
         return;
       }
 
@@ -411,6 +467,7 @@ export function useHostVenueDashboard(venueSlug: string) {
 
     // event config display
     eventGamesByCode,
+    eventBonusByCode,
     expandedByCode,
     toggleExpanded,
     loadConfigurationIntoForm,
@@ -420,7 +477,7 @@ export function useHostVenueDashboard(venueSlug: string) {
     createAndActivate,
     deactivateAll,
 
-    // copy panel
+    // copy
     copiedKey,
     copyToClipboard,
     activeEventDisplayName,

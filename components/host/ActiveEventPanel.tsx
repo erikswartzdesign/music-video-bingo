@@ -12,7 +12,7 @@ type ActiveEvent = {
 };
 
 type EventGamesRow = {
-  game_number: number; // 1..5
+  game_number: number; // 1..6
   playlist_key: string;
   display_mode: "title" | "artist" | null;
   pattern_id: number | null;
@@ -76,9 +76,17 @@ async function copyToClipboard(text: string) {
 }
 
 export default function ActiveEventPanel(props: ActiveEventPanelProps) {
-  const { loading, venueSlug, activeEvent, onRefresh, onEndEvent, formatStartAt } = props;
+  const {
+    loading,
+    venueSlug,
+    activeEvent,
+    onRefresh,
+    onEndEvent,
+    formatStartAt,
+  } = props;
 
-  const venueNameDisplay = safeString((props as any).venueNameDisplay) || venueSlug || "Venue";
+  const venueNameDisplay =
+    safeString((props as any).venueNameDisplay) || venueSlug || "Venue";
 
   const activeEventDisplayName =
     safeString(props.activeEventDisplayName) ||
@@ -92,7 +100,8 @@ export default function ActiveEventPanel(props: ActiveEventPanelProps) {
 
   const startLabel = useMemo(() => {
     if (!activeEvent?.start_at) return "";
-    if (typeof formatStartAt === "function") return formatStartAt(activeEvent.start_at);
+    if (typeof formatStartAt === "function")
+      return formatStartAt(activeEvent.start_at);
     // fallback: show raw ISO
     return activeEvent.start_at;
   }, [activeEvent?.start_at, formatStartAt]);
@@ -116,7 +125,7 @@ export default function ActiveEventPanel(props: ActiveEventPanelProps) {
   const handleEndEvent = () => {
     if (!activeEvent) return;
     const ok = window.confirm(
-      `End the active event?\n\n${activeEventDisplayName}\n${activeEvent.event_code}`
+      `End the active event?\n\n${activeEventDisplayName}\n${activeEvent.event_code}`,
     );
     if (!ok) return;
     onEndEvent();
@@ -138,14 +147,12 @@ export default function ActiveEventPanel(props: ActiveEventPanelProps) {
         }),
       });
 
-      const json = (await res.json().catch(() => null)) as
-        | {
-            ok?: boolean;
-            error?: string;
-            games?: EventGamesRow[];
-            bonus?: BonusRow | null;
-          }
-        | null;
+      const json = (await res.json().catch(() => null)) as {
+        ok?: boolean;
+        error?: string;
+        games?: EventGamesRow[];
+        bonus?: BonusRow | null;
+      } | null;
 
       if (!res.ok || !json || json.ok === false) {
         const msg =
@@ -158,10 +165,29 @@ export default function ActiveEventPanel(props: ActiveEventPanelProps) {
         return;
       }
 
-      setConfigData({
-        games: Array.isArray(json.games) ? json.games : [],
-        bonus: json.bonus ?? null,
-      });
+      const rawGames = Array.isArray(json.games) ? json.games : [];
+
+      // If backend ever returns game 6 inside `games`, treat that as bonus too.
+      const bonusFromGames =
+        rawGames.find((g) => Number(g.game_number) === 6) ?? null;
+
+      const bonus =
+        (json.bonus && (json.bonus as any).playlist_key ? json.bonus : null) ||
+        (bonusFromGames?.playlist_key
+          ? {
+              playlist_key: String(bonusFromGames.playlist_key),
+              display_mode: (bonusFromGames.display_mode ?? "title") as
+                | "title"
+                | "artist",
+            }
+          : null);
+
+      // Only show games 1–5 in the “Configured Games” list
+      const games = rawGames.filter(
+        (g) => Number(g.game_number) >= 1 && Number(g.game_number) <= 5,
+      );
+
+      setConfigData({ games, bonus });
     } catch (e) {
       setConfigErr(e instanceof Error ? e.message : "Failed to load config.");
       setConfigData(null);
@@ -174,8 +200,8 @@ export default function ActiveEventPanel(props: ActiveEventPanelProps) {
     const next = !showConfig;
     setShowConfig(next);
 
-    // Only fetch when opening, and only if we don't have it already.
-    if (next && !configData && !configLoading) {
+    // IMPORTANT: always re-fetch when opening so we never show stale data
+    if (next) {
       await loadActiveConfig();
     }
   };
@@ -186,11 +212,15 @@ export default function ActiveEventPanel(props: ActiveEventPanelProps) {
         <div className="min-w-0">
           <h2 className="text-lg font-semibold text-white">Tonight’s Event</h2>
           <div className="mt-1 text-sm text-slate-200">
-            <div className="font-semibold truncate">{activeEventDisplayName}</div>
+            <div className="font-semibold truncate">
+              {activeEventDisplayName}
+            </div>
             {activeEvent?.event_code ? (
               <div className="text-slate-300">
                 <span className="font-mono">{activeEvent.event_code}</span>
-                {startLabel ? <span className="ml-2">• {startLabel}</span> : null}
+                {startLabel ? (
+                  <span className="ml-2">• {startLabel}</span>
+                ) : null}
               </div>
             ) : (
               <div className="text-slate-300">
@@ -224,7 +254,9 @@ export default function ActiveEventPanel(props: ActiveEventPanelProps) {
       {/* Links + copy buttons */}
       <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
         <div className="rounded-xl border border-white/10 bg-black/20 p-3">
-          <div className="text-xs font-semibold text-slate-200">Welcome Page</div>
+          <div className="text-xs font-semibold text-slate-200">
+            Welcome Page
+          </div>
           <div className="mt-2 flex items-center gap-2">
             {activePlayerWelcomeUrl ? (
               <>
@@ -238,7 +270,9 @@ export default function ActiveEventPanel(props: ActiveEventPanelProps) {
                 </a>
                 <button
                   type="button"
-                  onClick={() => handleCopy("Welcome URL", activePlayerWelcomeUrl)}
+                  onClick={() =>
+                    handleCopy("Welcome URL", activePlayerWelcomeUrl)
+                  }
                   className="px-2 py-1 rounded-md text-[11px] font-semibold border border-white/15 bg-white/10 hover:bg-white/15 transition"
                 >
                   Copy
@@ -251,7 +285,9 @@ export default function ActiveEventPanel(props: ActiveEventPanelProps) {
         </div>
 
         <div className="rounded-xl border border-white/10 bg-black/20 p-3">
-          <div className="text-xs font-semibold text-slate-200">How To Play</div>
+          <div className="text-xs font-semibold text-slate-200">
+            How To Play
+          </div>
           <div className="mt-2 flex items-center gap-2">
             {activeHowToPlayUrl ? (
               <>
@@ -265,7 +301,9 @@ export default function ActiveEventPanel(props: ActiveEventPanelProps) {
                 </a>
                 <button
                   type="button"
-                  onClick={() => handleCopy("How To Play URL", activeHowToPlayUrl)}
+                  onClick={() =>
+                    handleCopy("How To Play URL", activeHowToPlayUrl)
+                  }
                   className="px-2 py-1 rounded-md text-[11px] font-semibold border border-white/15 bg-white/10 hover:bg-white/15 transition"
                 >
                   Copy
@@ -305,26 +343,45 @@ export default function ActiveEventPanel(props: ActiveEventPanelProps) {
         </div>
       </div>
 
-      {copyMsg ? <div className="mt-2 text-xs text-slate-300">{copyMsg}</div> : null}
+      {copyMsg ? (
+        <div className="mt-2 text-xs text-slate-300">{copyMsg}</div>
+      ) : null}
 
       {/* Game Configuration button for Active Event */}
       <div className="mt-4 flex items-center justify-between gap-3">
         <div className="text-xs text-slate-300">
           {activeEvent ? (
             <>
-              Venue: <span className="font-semibold text-slate-100">{venueNameDisplay}</span>
+              Venue:{" "}
+              <span className="font-semibold text-slate-100">
+                {venueNameDisplay}
+              </span>
             </>
           ) : null}
         </div>
 
-        <button
-          type="button"
-          onClick={handleToggleConfig}
-          className="px-3 py-1.5 rounded-md text-xs font-semibold border border-blue-700 bg-blue-900/60 text-blue-100 hover:bg-blue-900 transition"
-          disabled={!activeEvent}
-        >
-          {showConfig ? "Hide Configuration" : "Game Configuration"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleToggleConfig}
+            className="px-3 py-1.5 rounded-md text-xs font-semibold border border-blue-700 bg-blue-900/60 text-blue-100 hover:bg-blue-900 transition"
+            disabled={!activeEvent}
+          >
+            {showConfig ? "Hide Configuration" : "Game Configuration"}
+          </button>
+
+          {showConfig ? (
+            <button
+              type="button"
+              onClick={loadActiveConfig}
+              className="px-3 py-1.5 rounded-md text-xs font-semibold border border-white/15 bg-white/10 text-slate-100 hover:bg-white/15 transition"
+              disabled={!activeEvent || configLoading}
+              title="Reload configuration"
+            >
+              Reload
+            </button>
+          ) : null}
+        </div>
       </div>
 
       {showConfig ? (
@@ -335,7 +392,9 @@ export default function ActiveEventPanel(props: ActiveEventPanelProps) {
             <div className="text-sm text-red-200">{configErr}</div>
           ) : configData ? (
             <div className="space-y-3">
-              <div className="text-sm font-semibold text-white">Configured Games</div>
+              <div className="text-sm font-semibold text-white">
+                Configured Games
+              </div>
 
               {configData.games.length ? (
                 <ul className="space-y-1 text-sm text-slate-200">
@@ -343,8 +402,13 @@ export default function ActiveEventPanel(props: ActiveEventPanelProps) {
                     .slice()
                     .sort((a, b) => a.game_number - b.game_number)
                     .map((g) => (
-                      <li key={g.game_number} className="flex flex-wrap gap-x-3 gap-y-1">
-                        <span className="font-semibold">Game {g.game_number}</span>
+                      <li
+                        key={g.game_number}
+                        className="flex flex-wrap gap-x-3 gap-y-1"
+                      >
+                        <span className="font-semibold">
+                          Game {g.game_number}
+                        </span>
                         <span className="font-mono">{g.playlist_key}</span>
                         <span className="uppercase text-xs text-slate-300">
                           {g.display_mode ?? "title"}
@@ -356,26 +420,34 @@ export default function ActiveEventPanel(props: ActiveEventPanelProps) {
                     ))}
                 </ul>
               ) : (
-                <div className="text-sm text-slate-300">No game rows returned.</div>
+                <div className="text-sm text-slate-300">
+                  No game rows returned.
+                </div>
               )}
 
               <div className="pt-2 border-t border-white/10">
-                <div className="text-sm font-semibold text-white">Bonus Game</div>
+                <div className="text-sm font-semibold text-white">
+                  Bonus Game
+                </div>
                 {configData.bonus?.playlist_key ? (
                   <div className="mt-1 text-sm text-slate-200 flex flex-wrap gap-x-3 gap-y-1">
-                    <span className="font-mono">{configData.bonus.playlist_key}</span>
+                    <span className="font-mono">
+                      {configData.bonus.playlist_key}
+                    </span>
                     <span className="uppercase text-xs text-slate-300">
                       {configData.bonus.display_mode ?? "title"}
                     </span>
                   </div>
                 ) : (
-                  <div className="text-sm text-slate-300">No bonus configured.</div>
+                  <div className="text-sm text-slate-300">
+                    No bonus configured.
+                  </div>
                 )}
               </div>
             </div>
           ) : (
             <div className="text-sm text-slate-300">
-              No configuration loaded yet. Click “Game Configuration” again.
+              No configuration loaded yet.
             </div>
           )}
         </div>

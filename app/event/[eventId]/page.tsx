@@ -44,11 +44,6 @@ type DbEventGameRow = {
   pattern_id: number | null;
 };
 
-type DbEventBonusRow = {
-  playlist_key: string;
-  display_mode: "title" | "artist" | null;
-};
-
 type DbPatternRow = {
   id: number;
   name: string;
@@ -64,7 +59,8 @@ type LoadState = "loading" | "ready" | "error";
 // FREE (center) is 13 (index 12) and should not appear in cells.
 // =============================
 function patternCellsToIndexSet(cells1to25: number[] | null | undefined) {
-  if (!cells1to25 || !Array.isArray(cells1to25) || cells1to25.length === 0) return null;
+  if (!cells1to25 || !Array.isArray(cells1to25) || cells1to25.length === 0)
+    return null;
   const set = new Set<number>();
   for (const n of cells1to25) {
     const num = Number(n);
@@ -74,6 +70,52 @@ function patternCellsToIndexSet(cells1to25: number[] | null | undefined) {
     set.add(num - 1);
   }
   return set.size ? set : null;
+}
+
+/**
+ * Loose playlist lookup.
+ * Supports keys like: "p6T", "p6A", "p6", "6", "playlist_6", etc.
+ */
+function getPlaylistByKeyLoose(key: string) {
+  if (!key) return null;
+
+  // Try as-is first
+  let p = getPlaylistById(key);
+  if (p) return p;
+
+  const s = String(key);
+
+  // If it looks like p6 (no suffix), try both suffixes
+  const bare = s.match(/^p(\d+)$/i);
+  if (bare?.[1]) {
+    p = getPlaylistById(`p${bare[1]}T`);
+    if (p) return p;
+    p = getPlaylistById(`p${bare[1]}A`);
+    if (p) return p;
+  }
+
+  // Extract a number and try common variants (including suffixes)
+  const m = s.match(/\d+/);
+  const n = m?.[0];
+  if (!n) return null;
+
+  const candidates = [
+    `p${n}T`,
+    `p${n}A`,
+    `p${n}`,
+    n,
+    `playlist_${n}`,
+    `Playlist_${n}`,
+    `playlist${n}`,
+    `Playlist${n}`,
+  ];
+
+  for (const c of candidates) {
+    p = getPlaylistById(c);
+    if (p) return p;
+  }
+
+  return null;
 }
 
 function generateCardForPlaylist(playlist: PlaylistItem[]): BingoCard {
@@ -124,7 +166,8 @@ function safeJsonParse<T>(raw: string | null): T | null {
 }
 
 function normalizeCard(card: BingoCard): BingoCard {
-  if (!card || !Array.isArray(card.entries) || card.entries.length !== 25) return card;
+  if (!card || !Array.isArray(card.entries) || card.entries.length !== 25)
+    return card;
 
   const entries = card.entries.map((e, idx) => {
     if (idx === 12) {
@@ -149,7 +192,8 @@ function normalizeCard(card: BingoCard): BingoCard {
 function normalizeCardsByGameId(cardsByGameId: Record<string, BingoCard>) {
   const next: Record<string, BingoCard> = {};
   for (const [gameId, card] of Object.entries(cardsByGameId || {})) {
-    if (!card || !Array.isArray(card.entries) || card.entries.length !== 25) continue;
+    if (!card || !Array.isArray(card.entries) || card.entries.length !== 25)
+      continue;
     next[gameId] = normalizeCard(card);
   }
   return next;
@@ -168,21 +212,36 @@ type EventConfigExt = {
   games: GameConfigExt[];
 };
 
+// Bonus = event_games.game_number === 6
+// IMPORTANT: DB playlist_key is like "p6" and display_mode tells Title/Artist.
+// Local playlists are keyed like "p6T" / "p6A", so we derive the playlistId here.
 function buildEventConfigFromDb(
   dbEvent: DbEventWithGames,
   rows: DbEventGameRow[],
-  bonus: DbEventBonusRow | null
 ): EventConfigExt {
   const sorted = [...rows].sort((a, b) => a.game_number - b.game_number);
+
+  const toModeSuffix = (m: DbEventGameRow["display_mode"]) =>
+    m === "artist" ? "A" : "T";
+
+  const toPlaylistId = (
+    playlistKey: string,
+    mode: DbEventGameRow["display_mode"],
+  ) => {
+    const base = String(playlistKey || "");
+    const n = base.match(/\d+/)?.[0];
+    if (!n) return base;
+    return `p${n}${toModeSuffix(mode)}`; // p6T / p6A
+  };
 
   const baseGames: GameConfigExt[] = sorted
     .filter((r) => r.game_number >= 1 && r.game_number <= 5)
     .map((r) => {
-      const gameId = `game${r.game_number}`;
+      const n = Number(r.game_number);
       return {
-        id: gameId,
-        name: `Game ${r.game_number}`,
-        playlistId: r.playlist_key,
+        id: `game${n}`,
+        name: `Game ${n}`,
+        playlistId: toPlaylistId(r.playlist_key, r.display_mode),
         displayMode: (r.display_mode ?? "title") as DisplayMode,
         patternId: r.pattern_id ?? null,
         patternCells: undefined,
@@ -192,13 +251,17 @@ function buildEventConfigFromDb(
 
   const games: GameConfigExt[] = [...baseGames];
 
-  if (bonus?.playlist_key) {
+  const bonusGameRow = sorted.find((r) => Number(r.game_number) === 6);
+  if (bonusGameRow?.playlist_key) {
     games.push({
       id: "bonus",
       name: "Bonus Game",
-      playlistId: bonus.playlist_key,
-      displayMode: (bonus.display_mode ?? "title") as DisplayMode,
-      patternId: null,
+      playlistId: toPlaylistId(
+        bonusGameRow.playlist_key,
+        bonusGameRow.display_mode,
+      ),
+      displayMode: (bonusGameRow.display_mode ?? "title") as DisplayMode,
+      patternId: bonusGameRow.pattern_id ?? null,
       patternCells: undefined,
       isBonus: true,
     });
@@ -223,12 +286,13 @@ export default function EventPage() {
 
   const [dbEvent, setDbEvent] = useState<DbEventWithGames | null>(null);
   const [dbGames, setDbGames] = useState<DbEventGameRow[] | null>(null);
-  const [dbBonus, setDbBonus] = useState<DbEventBonusRow | null>(null);
 
   // DB patterns map: id -> row
-  const [patternsById, setPatternsById] = useState<Record<number, DbPatternRow>>({});
+  const [patternsById, setPatternsById] = useState<
+    Record<number, DbPatternRow>
+  >({});
 
-  // 0) Load event + event_games, THEN load bonus row (DB mode only)
+  // 0) Load event + event_games (DB mode only)
   useEffect(() => {
     let cancelled = false;
 
@@ -237,7 +301,6 @@ export default function EventPage() {
         if (!cancelled) {
           setDbEvent(null);
           setDbGames(null);
-          setDbBonus(null);
           setState("error");
         }
         return;
@@ -248,7 +311,6 @@ export default function EventPage() {
         if (!cancelled) {
           setDbEvent(null);
           setDbGames(null);
-          setDbBonus(null);
           setState("ready");
         }
         return;
@@ -273,7 +335,7 @@ export default function EventPage() {
               display_mode,
               pattern_id
             )
-          `
+          `,
           )
           .eq("event_code", eventCode)
           .maybeSingle();
@@ -283,7 +345,6 @@ export default function EventPage() {
         if (error || !data) {
           setDbEvent(null);
           setDbGames(null);
-          setDbBonus(null);
           setState("error");
           return;
         }
@@ -301,33 +362,11 @@ export default function EventPage() {
 
         setDbGames(games && games.length > 0 ? games : null);
 
-        try {
-          const { data: bonusRow, error: bonusErr } = await supabase
-            .from("event_bonus_games")
-            .select("playlist_key, display_mode")
-            .eq("event_id", typed.id)
-            .maybeSingle();
-
-          if (!cancelled) {
-            if (!bonusErr && bonusRow?.playlist_key) {
-              setDbBonus({
-                playlist_key: String(bonusRow.playlist_key),
-                display_mode: (bonusRow.display_mode ?? "title") as any,
-              });
-            } else {
-              setDbBonus(null);
-            }
-          }
-        } catch {
-          if (!cancelled) setDbBonus(null);
-        }
-
         setState("ready");
       } catch {
         if (cancelled) return;
         setDbEvent(null);
         setDbGames(null);
-        setDbBonus(null);
         setState("error");
       }
     }
@@ -362,7 +401,9 @@ export default function EventPage() {
           map[id] = {
             id,
             name: String(row.name ?? `Pattern ${id}`),
-            cells: Array.isArray(row.cells) ? row.cells.map((n: any) => Number(n)) : [],
+            cells: Array.isArray(row.cells)
+              ? row.cells.map((n: any) => Number(n))
+              : [],
           };
         }
         setPatternsById(map);
@@ -397,7 +438,7 @@ export default function EventPage() {
 
     // 2) DB-driven
     if (dbEvent && dbGames && dbGames.length > 0) {
-      return buildEventConfigFromDb(dbEvent, dbGames, dbBonus);
+      return buildEventConfigFromDb(dbEvent, dbGames);
     }
 
     // 3) Legacy config_key
@@ -416,10 +457,12 @@ export default function EventPage() {
         isBonus: false,
       })),
     };
-  }, [localEvent, dbEvent, dbGames, dbBonus, configKey]);
+  }, [localEvent, dbEvent, dbGames, configKey]);
 
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
-  const [cardsByGameId, setCardsByGameId] = useState<Record<string, BingoCard>>({});
+  const [cardsByGameId, setCardsByGameId] = useState<Record<string, BingoCard>>(
+    {},
+  );
 
   const hasRestoredRef = useRef(false);
   const lastSavedStringRef = useRef<string>("");
@@ -473,7 +516,7 @@ export default function EventPage() {
 
       for (const game of eventConfig.games) {
         if (!next[game.id]) {
-          const playlist = getPlaylistById(game.playlistId);
+          const playlist = getPlaylistByKeyLoose(game.playlistId);
           if (playlist) next[game.id] = generateCardForPlaylist(playlist.items);
         } else {
           next[game.id] = normalizeCard(next[game.id]);
@@ -552,16 +595,18 @@ export default function EventPage() {
           <p className="text-sm text-gray-300">
             <span className="font-mono">{eventCode}</span>
           </p>
-          <p className="text-sm text-gray-300">Please rescan the venue QR code.</p>
+          <p className="text-sm text-gray-300">
+            Please rescan the venue QR code.
+          </p>
         </div>
       </div>
     );
   }
 
   if (!eventConfig) {
-    const configKey = dbEvent?.config_key ?? null;
+    const cfgKey = dbEvent?.config_key ?? null;
 
-    if (!configKey && !(dbGames && dbGames.length > 0)) {
+    if (!cfgKey && !(dbGames && dbGames.length > 0)) {
       return (
         <div className="min-h-screen w-full bg-gradient-to-b from-[#000A3B] to-[#001370] text-slate-100 flex items-center justify-center">
           <div className="text-center space-y-2">
@@ -581,9 +626,11 @@ export default function EventPage() {
       <div className="min-h-screen w-full bg-gradient-to-b from-[#000A3B] to-[#001370] text-slate-100 flex items-center justify-center">
         <div className="text-center space-y-2">
           <h1 className="text-2xl font-bold">Configuration not found</h1>
-          <p className="text-sm text-gray-300">There is no local event configuration for:</p>
           <p className="text-sm text-gray-300">
-            <span className="font-mono">{configKey}</span>
+            There is no local event configuration for:
+          </p>
+          <p className="text-sm text-gray-300">
+            <span className="font-mono">{cfgKey}</span>
           </p>
         </div>
       </div>
@@ -591,10 +638,12 @@ export default function EventPage() {
   }
 
   const currentGame: GameConfigExt | undefined = eventConfig.games.find(
-    (g) => g.id === selectedGameId
+    (g) => g.id === selectedGameId,
   );
 
-  const currentPlaylist = currentGame ? getPlaylistById(currentGame.playlistId) : null;
+  const currentPlaylist = currentGame
+    ? getPlaylistByKeyLoose(currentGame.playlistId)
+    : null;
   const currentCard = currentGame ? cardsByGameId[currentGame.id] : null;
 
   const selectedDisplayMode: DisplayMode =
@@ -603,9 +652,13 @@ export default function EventPage() {
   const playlistNumber = currentGame?.playlistId?.match(/\d+/)?.[0] ?? null;
   const modeLabel = selectedDisplayMode === "title" ? "Title" : "Artist";
 
-  const patternRow = currentGame?.patternId ? patternsById[currentGame.patternId] : undefined;
+  const patternRow = currentGame?.patternId
+    ? patternsById[currentGame.patternId]
+    : undefined;
 
-  const localPatternSet = patternCellsToIndexSet(currentGame?.patternCells ?? undefined);
+  const localPatternSet = patternCellsToIndexSet(
+    currentGame?.patternCells ?? undefined,
+  );
   const dbPatternSet = patternCellsToIndexSet(patternRow?.cells ?? undefined);
 
   const patternSet = useLocalOnly ? localPatternSet : dbPatternSet;
@@ -616,7 +669,7 @@ export default function EventPage() {
     if (!currentGame) return;
 
     const ok = window.confirm(
-      `Reset your progress for ${currentGame.name}? This will clear your selected squares for this game only, but keep the card entries the same.`
+      `Reset your progress for ${currentGame.name}? This will clear your selected squares for this game only, but keep the card entries the same.`,
     );
     if (!ok) return;
 
@@ -650,7 +703,7 @@ export default function EventPage() {
       if (!card) return prev;
 
       const newEntries = card.entries.map((entry, i) =>
-        i === index ? { ...entry, selected: !entry.selected } : entry
+        i === index ? { ...entry, selected: !entry.selected } : entry,
       );
 
       return {
@@ -664,13 +717,14 @@ export default function EventPage() {
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-b from-[#000A3B] to-[#001370] text-slate-100 flex flex-col items-center relative">
-      {/* ✅ Restored orientation overlay */}
+      {/* Restored orientation overlay */}
       {!isLandscape && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 text-slate-100 px-6 text-center">
           <div className="mb-4 text-4xl">🔄</div>
           <h2 className="text-xl font-semibold mb-2">Rotate Your Phone</h2>
           <p className="text-sm text-slate-300 max-w-xs">
-            For the best Music Video Bingo experience, please rotate your device to landscape.
+            For the best Music Video Bingo experience, please rotate your device
+            to landscape.
           </p>
         </div>
       )}
@@ -693,8 +747,8 @@ export default function EventPage() {
                       ? "bg-blue-400 text-black border-blue-200 shadow-lg shadow-blue-400/30"
                       : "bg-emerald-500 text-black border-emerald-400 shadow-lg shadow-emerald-500/30"
                     : game.isBonus
-                    ? "bg-blue-900/60 text-blue-100 border-blue-600 hover:bg-slate-800 transition"
-                    : "bg-slate-800 text-slate-100 border-slate-600 hover:bg-slate-700",
+                      ? "bg-blue-900/60 text-blue-100 border-blue-600 hover:bg-slate-800 transition"
+                      : "bg-slate-800 text-slate-100 border-slate-600 hover:bg-slate-700",
                 ].join(" ")}
               >
                 {game.name}
@@ -728,19 +782,20 @@ export default function EventPage() {
                   const playlistNum = playlistNumber ?? "";
                   const modeUpper = (modeLabel || "").toUpperCase();
 
-                  const tileVariantClass = isCenterFree
-                    ? "border-blue-600 bg-blue-700/60 text-blue-100"
-                    : isPatternGame
-                    ? isSelected
-                      ? isPatternSquare
-                        ? "bg-emerald-400/90 text-black border-emerald-200 shadow-lg shadow-emerald-500/30"
-                        : "bg-red-900/55 text-slate-100 border-red-300/30 shadow"
-                      : isPatternSquare
-                      ? "bg-emerald-600/45 text-slate-100 border-emerald-400/25"
-                      : "bg-white/10 text-slate-100 border-white/20 hover:bg-white/15 hover:border-white/30"
-                    : isSelected
-                    ? "bg-emerald-400/90 text-black border-emerald-200 shadow-lg shadow-emerald-500/30"
-                    : "bg-white/10 text-slate-100 border-white/20 hover:bg-white/15 hover:border-white/30";
+                  const tileVariantClass =
+                    index === 12
+                      ? "border-blue-600 bg-blue-700/60 text-blue-100"
+                      : isPatternGame
+                        ? isSelected
+                          ? isPatternSquare
+                            ? "bg-emerald-400/90 text-black border-emerald-200 shadow-lg shadow-emerald-500/30"
+                            : "bg-red-900/55 text-slate-100 border-red-300/30 shadow"
+                          : isPatternSquare
+                            ? "bg-emerald-600/45 text-slate-100 border-emerald-400/25"
+                            : "bg-white/10 text-slate-100 border-white/20 hover:bg-white/15 hover:border-white/30"
+                        : isSelected
+                          ? "bg-emerald-400/90 text-black border-emerald-200 shadow-lg shadow-emerald-500/30"
+                          : "bg-white/10 text-slate-100 border-white/20 hover:bg-white/15 hover:border-white/30";
 
                   return (
                     <button
@@ -791,7 +846,9 @@ export default function EventPage() {
               </div>
             </div>
           ) : (
-            <p className="text-sm text-slate-300 mt-4">No card generated yet for this game.</p>
+            <p className="text-sm text-slate-300 mt-4">
+              No card generated yet for this game.
+            </p>
           )}
         </div>
       </main>

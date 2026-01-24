@@ -1,7 +1,11 @@
 "use client";
 
 import type { DisplayMode } from "@/lib/eventConfig";
-import type { DbPatternRow, HostGameForm, PlaylistOption } from "@/lib/host/types";
+import type {
+  DbPatternRow,
+  HostGameForm,
+  PlaylistOption,
+} from "@/lib/host/types";
 import SectionDivider from "@/components/host/SectionDivider";
 
 type Props = {
@@ -19,7 +23,10 @@ type Props = {
 
   games: HostGameForm[];
   onResetDefaults: () => void;
-  onUpdateGame: (gameNumber: HostGameForm["gameNumber"], patch: Partial<HostGameForm>) => void;
+  onUpdateGame: (
+    gameNumber: HostGameForm["gameNumber"],
+    patch: Partial<HostGameForm>
+  ) => void;
 
   patterns: DbPatternRow[];
   patternsById: Record<number, string>;
@@ -56,7 +63,6 @@ export default function CreateActivateEventCard({
   onCreateAndActivate,
 }: Props) {
   const bonusEnabled = Boolean(String(bonusPlaylistKey || "").trim());
-  const canSubmit = Boolean(String(venueSlug || "").trim());
 
   return (
     <section className="bg-white/10 border border-white/15 rounded-xl p-5 sm:p-6 backdrop-blur-md shadow-lg">
@@ -64,7 +70,9 @@ export default function CreateActivateEventCard({
 
       <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-slate-200 mb-1">Date</label>
+          <label className="block text-sm font-medium text-slate-200 mb-1">
+            Date
+          </label>
           <input
             type="date"
             value={eventDate}
@@ -72,7 +80,8 @@ export default function CreateActivateEventCard({
             className="w-full rounded-md bg-black/30 border border-white/15 px-3 py-2 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-400/70"
           />
           <p className="mt-1 text-[11px] text-slate-400">
-            Event code becomes: <span className="font-mono">{venueSlug}--YYYY-MM-DD</span>
+            Event code becomes:{" "}
+            <span className="font-mono">{venueSlug}--YYYY-MM-DD</span>
           </p>
         </div>
 
@@ -121,24 +130,39 @@ export default function CreateActivateEventCard({
 
         <div className="mt-3 space-y-3">
           {games.map((g) => (
-            <div key={g.gameNumber} className="rounded-lg border border-white/10 bg-black/20 p-4">
+            <div
+              key={g.gameNumber}
+              className="rounded-lg border border-white/10 bg-black/20 p-4"
+            >
               <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between">
-                  <div className="text-sm font-semibold">Game {g.gameNumber}</div>
+                  <div className="text-sm font-semibold">
+                    Game {g.gameNumber}
+                  </div>
                   {g.gameNumber === 1 ? (
-                    <div className="text-[11px] text-slate-400">No pattern for Game 1</div>
+                    <div className="text-[11px] text-slate-400">
+                      No pattern for Game 1
+                    </div>
                   ) : (
-                    <div className="text-[11px] text-slate-400">Pattern optional (Games 2–5)</div>
+                    <div className="text-[11px] text-slate-400">
+                      Pattern optional (Games 2–5)
+                    </div>
                   )}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {/* Playlist */}
                   <div>
-                    <label className="block text-xs font-medium text-slate-300 mb-1">Playlist</label>
+                    <label className="block text-xs font-medium text-slate-300 mb-1">
+                      Playlist
+                    </label>
                     <select
                       value={g.playlistKey}
-                      onChange={(e) => onUpdateGame(g.gameNumber, { playlistKey: e.target.value })}
+                      onChange={(e) =>
+                        onUpdateGame(g.gameNumber, {
+                          playlistKey: e.target.value,
+                        })
+                      }
                       className="w-full rounded-md bg-black/30 border border-white/15 px-3 py-2 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-400/70"
                     >
                       {playlistOptions.map((opt) => (
@@ -151,11 +175,15 @@ export default function CreateActivateEventCard({
 
                   {/* Mode */}
                   <div>
-                    <label className="block text-xs font-medium text-slate-300 mb-1">Mode</label>
+                    <label className="block text-xs font-medium text-slate-300 mb-1">
+                      Mode
+                    </label>
                     <select
                       value={g.displayMode}
                       onChange={(e) =>
-                        onUpdateGame(g.gameNumber, { displayMode: e.target.value as DisplayMode })
+                        onUpdateGame(g.gameNumber, {
+                          displayMode: e.target.value as DisplayMode,
+                        })
                       }
                       className="w-full rounded-md bg-black/30 border border-white/15 px-3 py-2 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-400/70"
                     >
@@ -166,18 +194,24 @@ export default function CreateActivateEventCard({
 
                   {/* Pattern */}
                   <div>
-                    <label className="block text-xs font-medium text-slate-300 mb-1">Pattern</label>
+                    <label className="block text-xs font-medium text-slate-300 mb-1">
+                      Pattern
+                    </label>
                     <select
                       value={g.patternId ?? ""}
                       onChange={(e) => {
                         const raw = e.target.value;
                         const next = raw === "" ? null : Number(raw);
-                        onUpdateGame(g.gameNumber, { patternId: g.gameNumber === 1 ? null : next });
+                        onUpdateGame(g.gameNumber, {
+                          patternId: g.gameNumber === 1 ? null : next,
+                        });
                       }}
                       disabled={g.gameNumber === 1}
                       className={[
                         "w-full rounded-md bg-black/30 border border-white/15 px-3 py-2 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-400/70",
-                        g.gameNumber === 1 ? "opacity-60 cursor-not-allowed" : "",
+                        g.gameNumber === 1
+                          ? "opacity-60 cursor-not-allowed"
+                          : "",
                       ].join(" ")}
                     >
                       <option value="">No Pattern</option>
@@ -192,7 +226,8 @@ export default function CreateActivateEventCard({
                       <p className="mt-1 text-[11px] text-slate-400">
                         Selected:{" "}
                         <span className="font-mono">
-                          {patternsById[g.patternId] ?? `Pattern ${g.patternId}`}
+                          {patternsById[g.patternId] ??
+                            `Pattern ${g.patternId}`}
                         </span>
                       </p>
                     ) : null}
@@ -213,7 +248,9 @@ export default function CreateActivateEventCard({
 
         <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">Playlist</label>
+            <label className="block text-xs font-medium text-slate-300 mb-1">
+              Playlist
+            </label>
             <select
               value={bonusPlaylistKey}
               onChange={(e) => setBonusPlaylistKey(e.target.value)}
@@ -229,10 +266,14 @@ export default function CreateActivateEventCard({
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">Mode</label>
+            <label className="block text-xs font-medium text-slate-300 mb-1">
+              Mode
+            </label>
             <select
               value={bonusDisplayMode}
-              onChange={(e) => setBonusDisplayMode(e.target.value as DisplayMode)}
+              onChange={(e) =>
+                setBonusDisplayMode(e.target.value as DisplayMode)
+              }
               disabled={!bonusEnabled}
               className={[
                 "w-full rounded-md bg-black/30 border border-white/15 px-3 py-2 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-400/70",
@@ -253,33 +294,18 @@ export default function CreateActivateEventCard({
       </div>
 
       <div className="mt-5">
-        {/* NOT a <button> — cannot submit/reload */}
-        <div
-          role="button"
-          tabIndex={0}
-          aria-disabled={!canSubmit}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (!canSubmit) return;
-            onCreateAndActivate();
-          }}
-          onKeyDown={(e) => {
-            if (!canSubmit) return;
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              e.stopPropagation();
-              onCreateAndActivate();
-            }
-          }}
+        <button
+          type="button"
+          onClick={onCreateAndActivate}
+          disabled={!venueSlug}
           className={[
-            "inline-flex items-center justify-center px-4 py-3 rounded-md text-sm font-semibold shadow-md transition select-none",
+            "inline-flex items-center justify-center px-4 py-3 rounded-md text-sm font-semibold shadow-md transition",
             "bg-emerald-500 text-black hover:bg-emerald-400",
-            !canSubmit ? "opacity-60 pointer-events-none" : "cursor-pointer",
+            !venueSlug ? "opacity-60 pointer-events-none" : "",
           ].join(" ")}
         >
           Create & Activate Tonight
-        </div>
+        </button>
       </div>
     </section>
   );

@@ -46,13 +46,17 @@ function isoDateInTimeZone(tz: string, date = new Date()) {
 }
 
 function parsePlaylistKey(playlistKey: string) {
-  const key = String(playlistKey ?? "").trim().toLowerCase();
+  const key = String(playlistKey ?? "")
+    .trim()
+    .toLowerCase();
   const m = /^p(\d+)$/.exec(key);
-  if (!m)
+
+  if (!m) {
     return {
       ok: false as const,
       error: `Invalid playlistKey "${playlistKey}". Use p1–p${MAX_PLAYLIST_NUMBER}.`,
     };
+  }
 
   const n = Number(m[1]);
   if (!Number.isInteger(n) || n < 1 || n > MAX_PLAYLIST_NUMBER) {
@@ -130,7 +134,12 @@ function resolveConfigKey(input?: string | null) {
   if (!raw) return { ok: true as const, key: null as string | null };
 
   const cfg = getEventConfig(raw);
-  if (!cfg) return { ok: false as const, key: null, error: `Unknown config_key: ${raw}` };
+  if (!cfg)
+    return {
+      ok: false as const,
+      key: null,
+      error: `Unknown config_key: ${raw}`,
+    };
 
   return { ok: true as const, key: raw };
 }
@@ -148,31 +157,48 @@ function normalizeGames(input: PostGameBody[] | undefined | null) {
   for (const g of input) {
     const gameNumber = Number(g.gameNumber);
     if (!Number.isInteger(gameNumber) || gameNumber < 1 || gameNumber > 6) {
-      return { ok: false as const, error: `Invalid gameNumber: ${g.gameNumber}` };
+      return {
+        ok: false as const,
+        error: `Invalid gameNumber: ${g.gameNumber}`,
+      };
     }
 
     const playlistKeyRaw = String(g.playlistKey ?? "").trim();
     if (!playlistKeyRaw) {
-      return { ok: false as const, error: `Missing playlistKey for game ${gameNumber}` };
+      return {
+        ok: false as const,
+        error: `Missing playlistKey for game ${gameNumber}`,
+      };
     }
 
     const parsed = parsePlaylistKey(playlistKeyRaw);
     if (!parsed.ok) {
-      return { ok: false as const, error: `Game ${gameNumber}: ${parsed.error}` };
+      return {
+        ok: false as const,
+        error: `Game ${gameNumber}: ${parsed.error}`,
+      };
     }
 
     const displayMode = (g.displayMode ?? "title") as "title" | "artist";
     if (displayMode !== "title" && displayMode !== "artist") {
-      return { ok: false as const, error: `Invalid displayMode for game ${gameNumber}` };
+      return {
+        ok: false as const,
+        error: `Invalid displayMode for game ${gameNumber}`,
+      };
     }
 
     const patternIdRaw = g.patternId ?? null;
     const patternId =
-      patternIdRaw === null || patternIdRaw === undefined ? null : Number(patternIdRaw);
+      patternIdRaw === null || patternIdRaw === undefined
+        ? null
+        : Number(patternIdRaw);
 
     if (patternId !== null) {
       if (!Number.isInteger(patternId) || patternId < 1 || patternId > 25) {
-        return { ok: false as const, error: `Invalid patternId for game ${gameNumber}` };
+        return {
+          ok: false as const,
+          error: `Invalid patternId for game ${gameNumber}`,
+        };
       }
     }
 
@@ -180,14 +206,18 @@ function normalizeGames(input: PostGameBody[] | undefined | null) {
       game_number: gameNumber,
       playlist_key: parsed.normalized,
       display_mode: displayMode,
-      pattern_id: gameNumber === 1 || gameNumber === 6 ? null : patternId,
+      pattern_id: gameNumber === 1 ? null : patternId,
     });
   }
 
   // Require 1..5; allow 6 optional
   const nums = new Set(out.map((r) => r.game_number));
   for (let i = 1; i <= 5; i++) {
-    if (!nums.has(i)) return { ok: false as const, error: "games must include gameNumber 1–5." };
+    if (!nums.has(i))
+      return {
+        ok: false as const,
+        error: "games must include gameNumber 1–5.",
+      };
   }
 
   out.sort((a, b) => a.game_number - b.game_number);
@@ -203,15 +233,25 @@ async function assertPatternsExist(
 
   const unique = Array.from(new Set(patternIds)).sort((a, b) => a - b);
 
-  const { data, error } = await supabase.from("patterns").select("id").in("id", unique);
+  const { data, error } = await supabase
+    .from("patterns")
+    .select("id")
+    .in("id", unique);
 
-  if (error) return { ok: false as const, error: `Pattern lookup failed: ${error.message}` };
+  if (error)
+    return {
+      ok: false as const,
+      error: `Pattern lookup failed: ${error.message}`,
+    };
 
   const found = new Set<number>((data ?? []).map((r: any) => Number(r.id)));
   const missing = unique.filter((id) => !found.has(id));
 
   if (missing.length) {
-    return { ok: false as const, error: `Unknown pattern id(s): ${missing.join(", ")}` };
+    return {
+      ok: false as const,
+      error: `Unknown pattern id(s): ${missing.join(", ")}`,
+    };
   }
 
   return { ok: true as const };
@@ -231,7 +271,8 @@ export async function POST(req: Request) {
   const eventDate = (body.eventDate ?? "").trim();
 
   if (!venueSlug) return jsonError("Missing venueSlug.");
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(eventDate)) return jsonError("eventDate must be YYYY-MM-DD.");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(eventDate))
+    return jsonError("eventDate must be YYYY-MM-DD.");
 
   const cfg = resolveConfigKey(body.configKey);
   if (!cfg.ok) return jsonError(cfg.error, 400);
@@ -289,7 +330,8 @@ export async function POST(req: Request) {
       .eq("venue_id", venue.id)
       .eq("status", "active");
 
-    if (deactivateErr) return jsonError("Failed to end existing active event.", 500);
+    if (deactivateErr)
+      return jsonError("Failed to end existing active event.", 500);
   }
 
   // Upsert event (need id for event_games)
@@ -309,7 +351,8 @@ export async function POST(req: Request) {
     .select("id,event_code,status,config_key,name,start_at")
     .maybeSingle();
 
-  if (upsertErr || !upserted?.id) return jsonError("Failed to create/update event.", 500);
+  if (upsertErr || !upserted?.id)
+    return jsonError("Failed to create/update event.", 500);
 
   // Upsert event_games if provided
   if (gamesNorm && gamesNorm.ok) {
@@ -325,7 +368,8 @@ export async function POST(req: Request) {
       .from("event_games")
       .upsert(rows, { onConflict: "event_id,game_number" });
 
-    if (gamesErr) return jsonError(`Failed to save event games: ${gamesErr.message}`, 500);
+    if (gamesErr)
+      return jsonError(`Failed to save event games: ${gamesErr.message}`, 500);
 
     // If payload did NOT include bonus (6), delete any existing bonus row (prevents stale bonus)
     const includesBonus = gamesNorm.rows.some((r) => r.game_number === 6);
@@ -336,7 +380,8 @@ export async function POST(req: Request) {
         .eq("event_id", upserted.id)
         .eq("game_number", 6);
 
-      if (delErr) return jsonError(`Failed to clear bonus game: ${delErr.message}`, 500);
+      if (delErr)
+        return jsonError(`Failed to clear bonus game: ${delErr.message}`, 500);
     }
   }
 
@@ -382,7 +427,8 @@ export async function PATCH(req: Request) {
     .eq("venue_id", venue.id)
     .eq("status", "active");
 
-  if (deactivateErr) return jsonError("Failed to end existing active event.", 500);
+  if (deactivateErr)
+    return jsonError("Failed to end existing active event.", 500);
 
   // Activate requested event
   const { data: activated, error: activateErr } = await supabase
@@ -393,13 +439,16 @@ export async function PATCH(req: Request) {
     .select("id,event_code,status,config_key,name,start_at")
     .maybeSingle();
 
-  if (activateErr || !activated) return jsonError("Event not found for this venue.", 404);
+  if (activateErr || !activated)
+    return jsonError("Event not found for this venue.", 404);
 
   return NextResponse.json({ ok: true, event: activated });
 }
 
 export async function DELETE(req: Request) {
-  const body = (await req.json().catch(() => null)) as { venueSlug?: string } | null;
+  const body = (await req.json().catch(() => null)) as {
+    venueSlug?: string;
+  } | null;
   if (!body) return jsonError("Invalid JSON body.");
 
   const venueSlug = (body.venueSlug ?? "").trim();
@@ -428,7 +477,10 @@ export async function DELETE(req: Request) {
 
   if (deactivateErr) {
     console.error("[DELETE /api/host/events] deactivate error:", deactivateErr);
-    return jsonError(`Failed to end active event: ${deactivateErr.message}`, 500);
+    return jsonError(
+      `Failed to end active event: ${deactivateErr.message}`,
+      500
+    );
   }
 
   return NextResponse.json({ ok: true });

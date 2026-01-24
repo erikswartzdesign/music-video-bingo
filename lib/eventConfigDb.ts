@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 export type DbDisplayMode = "title" | "artist";
 
 export type DbGameConfig = {
-  gameNumber: 1 | 2 | 3 | 4 | 5;
+  gameNumber: 1 | 2 | 3 | 4 | 5 | 6;
   playlistKey: string; // e.g. "p6"
   displayMode: DbDisplayMode; // "title" | "artist"
   patternId: number | null; // 1..25 or null
@@ -12,6 +12,7 @@ export type DbGameConfig = {
 
 export type DbEventConfig = {
   eventCode: string;
+  eventName: string; // <-- NEW (from events.name)
   venueSlug: string;
   venueName: string;
   games: DbGameConfig[];
@@ -21,16 +22,13 @@ export type DbEventConfig = {
 function getPublicSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 
-  // NOTE: Your app elsewhere uses NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY.
-  // This file was originally written with NEXT_PUBLIC_SUPABASE_ANON_KEY.
-  // We'll accept either so you don't get env mismatches.
   const anon =
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!url || !anon) {
     throw new Error(
-      "Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (or NEXT_PUBLIC_SUPABASE_ANON_KEY)"
+      "Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (or NEXT_PUBLIC_SUPABASE_ANON_KEY)",
     );
   }
 
@@ -41,12 +39,6 @@ function getPublicSupabase() {
 
 type VenueRel = { slug: any; name: any };
 
-/**
- * Supabase relationship fields sometimes come back as:
- * - an object (one-to-one), OR
- * - an array of objects (even when logically one-to-one)
- * This helper normalizes either into a single venue object or null.
- */
 function normalizeVenueRel(input: any): VenueRel | null {
   if (!input) return null;
   if (Array.isArray(input)) return (input[0] as VenueRel) ?? null;
@@ -59,7 +51,9 @@ function normalizeVenueRel(input: any): VenueRel | null {
  * - event_code not found, OR
  * - event found but has no event_games rows yet
  */
-export async function getEventConfigFromDb(eventCode: string): Promise<DbEventConfig | null> {
+export async function getEventConfigFromDb(
+  eventCode: string,
+): Promise<DbEventConfig | null> {
   const supabase = getPublicSupabase();
 
   // 1) Fetch event + venue
@@ -69,12 +63,13 @@ export async function getEventConfigFromDb(eventCode: string): Promise<DbEventCo
       `
       id,
       event_code,
+      name,
       venue_id,
       venues:venue_id (
         slug,
         name
       )
-    `
+    `,
     )
     .eq("event_code", eventCode)
     .maybeSingle();
@@ -85,7 +80,7 @@ export async function getEventConfigFromDb(eventCode: string): Promise<DbEventCo
   const venue = normalizeVenueRel((eventRow as any).venues);
   if (!venue) return null;
 
-  // 2) Fetch event_games
+  // 2) Fetch event_games (now includes 1–6)
   const { data: gameRows, error: gamesErr } = await supabase
     .from("event_games")
     .select("game_number, playlist_key, display_mode, pattern_id")
@@ -95,18 +90,26 @@ export async function getEventConfigFromDb(eventCode: string): Promise<DbEventCo
   if (gamesErr) throw gamesErr;
   if (!gameRows || gameRows.length === 0) return null;
 
-  // Normalize to strict shape
   const games: DbGameConfig[] = gameRows
-    .filter((g: any) => Number(g.game_number) >= 1 && Number(g.game_number) <= 5)
+    .filter((g: any) => {
+      const n = Number(g.game_number);
+      return n >= 1 && n <= 6;
+    })
     .map((g: any) => ({
-      gameNumber: Number(g.game_number) as 1 | 2 | 3 | 4 | 5,
+      gameNumber: Number(g.game_number) as 1 | 2 | 3 | 4 | 5 | 6,
       playlistKey: String(g.playlist_key),
-      displayMode: ((g.display_mode as DbDisplayMode) ?? "title") as DbDisplayMode,
+      displayMode: ((g.display_mode as DbDisplayMode) ??
+        "title") as DbDisplayMode,
       patternId: g.pattern_id ?? null,
     }));
 
+  const eventName =
+    String((eventRow as any).name ?? "").trim() ||
+    `${String(venue.name ?? venue.slug)} — ${String(eventRow.event_code)}`;
+
   return {
     eventCode: String(eventRow.event_code),
+    eventName,
     venueSlug: String(venue.slug),
     venueName: String(venue.name ?? venue.slug),
     games,
