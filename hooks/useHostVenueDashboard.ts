@@ -247,22 +247,19 @@ export function useHostVenueDashboard(venueSlug: string) {
     }
   }
 
-  // Load patterns once (public read)
+  // Load patterns once (server endpoint)
   useEffect(() => {
     let cancelled = false;
 
     async function loadPatterns() {
       try {
-        const supabase = createClient();
-        const { data, error } = await supabase
-          .from("patterns")
-          .select("id,name")
-          .order("id", { ascending: true });
+        const res = await fetch("/api/host/patterns", { cache: "no-store" });
+        const json = await res.json();
 
         if (cancelled) return;
-        if (error || !data) return;
+        if (!res.ok || !json?.ok) return;
 
-        const list: DbPatternRow[] = (data as any[]).map((r) => ({
+        const list: DbPatternRow[] = (json.patterns as any[]).map((r) => ({
           id: Number(r.id),
           name: String(r.name ?? `Pattern ${r.id}`),
         }));
