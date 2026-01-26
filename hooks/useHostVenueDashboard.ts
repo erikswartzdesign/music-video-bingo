@@ -178,72 +178,33 @@ export function useHostVenueDashboard(venueSlug: string) {
     setErrMsg(null);
 
     try {
-      const supabase = createClient();
+      const res = await fetch(
+        `/api/host/venue-dashboard?venueSlug=${encodeURIComponent(venueSlug)}`,
+        { cache: "no-store" },
+      );
 
-      // Load venue
-      const { data: v, error: vErr } = await supabase
-        .from("venues")
-        .select("id,slug,name")
-        .eq("slug", venueSlug)
-        .maybeSingle();
+      const json = await res.json();
 
-      if (vErr || !v?.id) {
+      if (!res.ok || !json?.ok) {
         setVenue(null);
         setEvents([]);
         setEventGamesByCode({});
         setEventBonusByCode({});
-        setErrMsg("Venue not found in database.");
+        setErrMsg("Could not load venue/events.");
         setLoading(false);
         return;
       }
 
-      setVenue(v as VenueRow);
+      const v = json.venue as VenueRow;
+      const list = (json.events ?? []) as EventRow[];
+      const gameRows = (json.eventGames ?? []) as any[];
 
-      // Load events
-      const { data: evts, error: eErr } = await supabase
-        .from("events")
-        .select("id,event_code,name,start_at,status,config_key")
-        .eq("venue_id", v.id)
-        .order("start_at", { ascending: false })
-        .limit(25);
-
-      if (eErr) {
-        setEvents([]);
-        setEventGamesByCode({});
-        setEventBonusByCode({});
-        setErrMsg("Could not load events.");
-        setLoading(false);
-        return;
-      }
-
-      const list = (evts ?? []) as EventRow[];
+      setVenue(v);
       setEvents(list);
 
-      // Fetch event_games for these events (includes game 6 if present)
-      const ids = list.map((e) => e.id).filter(Boolean);
-      if (ids.length === 0) {
-        setEventGamesByCode({});
-        setEventBonusByCode({});
-        setLoading(false);
-        return;
-      }
-
-      const { data: gameRows, error: gErr } = await supabase
-        .from("event_games")
-        .select("event_id,game_number,playlist_key,display_mode,pattern_id")
-        .in("event_id", ids)
-        .order("game_number", { ascending: true });
-
-      if (gErr) {
-        setEventGamesByCode({});
-        setEventBonusByCode({});
-        setLoading(false);
-        return;
-      }
-
-      const rows = (gameRows ?? []) as any[];
+      // Build eventGamesByCode + eventBonusByCode from returned eventGames
       const byEventId: Record<string, DbEventGameRow[]> = {};
-      for (const r of rows) {
+      for (const r of gameRows) {
         const event_id = String(r.event_id);
         if (!byEventId[event_id]) byEventId[event_id] = [];
         byEventId[event_id].push({
@@ -401,8 +362,6 @@ export function useHostVenueDashboard(venueSlug: string) {
         setErrMsg(json?.error ?? "Failed to create/activate event.");
         return;
       }
-
-      // No separate bonus endpoint anymore. Bonus is stored as event_games.game_number = 6.
 
       setEventName("");
       await refresh();
