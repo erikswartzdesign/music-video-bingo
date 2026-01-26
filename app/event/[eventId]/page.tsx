@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import {
   DisplayMode,
   PlaylistItem,
@@ -34,6 +33,7 @@ type DbEventWithGames = {
   event_code: string;
   name: string | null;
   config_key: string | null;
+  status?: string | null;
   event_games?: DbEventGameRow[] | null;
 };
 
@@ -278,7 +278,7 @@ export default function EventPage() {
   const params = useParams<{ eventId?: string }>();
   const eventCode = params?.eventId ?? "";
 
-  // Local-first: if a hardcoded event exists for this URL code, use it and bypass Supabase.
+  // Local-first: if a hardcoded event exists for this URL code, use it and bypass DB fetch.
   const localEvent = useMemo(() => getEventConfig(eventCode), [eventCode]);
   const useLocalOnly = Boolean(localEvent);
 
@@ -292,25 +292,27 @@ export default function EventPage() {
     Record<number, DbPatternRow>
   >({});
 
-  // 0) Load event + event_games (DB mode only)
+  // 0) Load event + event_games + patterns (DB mode only) via public server endpoint
   useEffect(() => {
     let cancelled = false;
 
-    async function loadDbEvent() {
+    async function loadFromServer() {
       if (!eventCode) {
         if (!cancelled) {
           setDbEvent(null);
           setDbGames(null);
+          setPatternsById({});
           setState("error");
         }
         return;
       }
 
-      // Local-only: skip Supabase entirely.
+      // Local-only: skip server fetch.
       if (useLocalOnly) {
         if (!cancelled) {
           setDbEvent(null);
           setDbGames(null);
+          setPatternsById({});
           setState("ready");
         }
         return;
@@ -319,37 +321,24 @@ export default function EventPage() {
       if (!cancelled) setState("loading");
 
       try {
-        const supabase = createClient();
+        const res = await fetch(
+          `/api/public/event-config?eventCode=${encodeURIComponent(eventCode)}`,
+          { cache: "no-store" },
+        );
 
-        const { data, error } = await supabase
-          .from("events")
-          .select(
-            `
-            id,
-            event_code,
-            name,
-            config_key,
-            event_games (
-              game_number,
-              playlist_key,
-              display_mode,
-              pattern_id
-            )
-          `,
-          )
-          .eq("event_code", eventCode)
-          .maybeSingle();
+        const json = await res.json();
 
         if (cancelled) return;
 
-        if (error || !data) {
+        if (!res.ok || !json?.ok || !json?.event?.id) {
           setDbEvent(null);
           setDbGames(null);
+          setPatternsById({});
           setState("error");
           return;
         }
 
-        const typed = data as DbEventWithGames;
+        const typed = json.event as DbEventWithGames;
         setDbEvent(typed);
 
         const games =
@@ -362,40 +351,8 @@ export default function EventPage() {
 
         setDbGames(games && games.length > 0 ? games : null);
 
-        setState("ready");
-      } catch {
-        if (cancelled) return;
-        setDbEvent(null);
-        setDbGames(null);
-        setState("error");
-      }
-    }
-
-    loadDbEvent();
-    return () => {
-      cancelled = true;
-    };
-  }, [eventCode, useLocalOnly]);
-
-  // 0b) Load patterns from DB (DB mode only)
-  useEffect(() => {
-    if (useLocalOnly) return;
-
-    let cancelled = false;
-
-    async function loadPatterns() {
-      try {
-        const supabase = createClient();
-        const { data, error } = await supabase
-          .from("patterns")
-          .select("id,name,cells")
-          .order("id", { ascending: true });
-
-        if (cancelled) return;
-        if (error || !data) return;
-
         const map: Record<number, DbPatternRow> = {};
-        for (const row of data as any[]) {
+        for (const row of (json.patterns ?? []) as any[]) {
           const id = Number(row.id);
           if (!Number.isInteger(id)) continue;
           map[id] = {
@@ -407,16 +364,22 @@ export default function EventPage() {
           };
         }
         setPatternsById(map);
+
+        setState("ready");
       } catch {
-        // non-fatal
+        if (cancelled) return;
+        setDbEvent(null);
+        setDbGames(null);
+        setPatternsById({});
+        setState("error");
       }
     }
 
-    loadPatterns();
+    loadFromServer();
     return () => {
       cancelled = true;
     };
-  }, [useLocalOnly]);
+  }, [eventCode, useLocalOnly]);
 
   const configKey = dbEvent?.config_key ?? null;
 
@@ -637,7 +600,7 @@ export default function EventPage() {
     );
   }
 
-  const currentGame: GameConfigExt | undefined = eventConfig.games.find(
+  const currentGame: any = eventConfig.games.find(
     (g) => g.id === selectedGameId,
   );
 
@@ -677,7 +640,7 @@ export default function EventPage() {
       const card = prev[currentGame.id];
       if (!card?.entries || card.entries.length !== 25) return prev;
 
-      const entries = card.entries.map((entry, idx) => {
+      const entries = card.entries.map((entry: any, idx: number) => {
         if (idx === 12) {
           return {
             playlistItem: { id: -1, title: "FREE", artist: "" },
@@ -702,7 +665,7 @@ export default function EventPage() {
       const card = prev[currentGame.id];
       if (!card) return prev;
 
-      const newEntries = card.entries.map((entry, i) =>
+      const newEntries = card.entries.map((entry: any, i: number) =>
         i === index ? { ...entry, selected: !entry.selected } : entry,
       );
 
@@ -717,7 +680,6 @@ export default function EventPage() {
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-b from-[#000A3B] to-[#001370] text-slate-100 flex flex-col items-center relative">
-      {/* Restored orientation overlay */}
       {!isLandscape && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 text-slate-100 px-6 text-center">
           <div className="mb-4 text-4xl">🔄</div>
