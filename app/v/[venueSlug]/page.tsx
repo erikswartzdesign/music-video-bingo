@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 
 function slugToTitle(slug: string) {
   const safe = (slug || "").trim();
@@ -18,16 +17,14 @@ function slugToTitle(slug: string) {
 
 type LoadState = "loading" | "ready" | "error";
 
-type DbVenue = {
+type PublicVenue = {
   id: string;
+  slug: string;
   name: string | null;
 };
 
-type DbEvent = {
+type PublicActiveEvent = {
   event_code: string;
-  name: string | null;
-  status: "active" | "scheduled" | "completed" | string;
-  start_at: string | null;
 };
 
 export default function VenueWelcomePage() {
@@ -61,18 +58,17 @@ export default function VenueWelcomePage() {
       if (!cancelled) setState("loading");
 
       try {
-        const supabase = createClient();
+        // 1) Load venue via public server endpoint (service-role on server)
+        const vRes = await fetch(
+          `/api/public/venue?venueSlug=${encodeURIComponent(venueSlug)}`,
+          { cache: "no-store" },
+        );
 
-        // 1) Load venue
-        const { data: venue, error: vErr } = await supabase
-          .from("venues")
-          .select("id,name")
-          .eq("slug", venueSlug)
-          .maybeSingle();
+        const vJson = await vRes.json();
 
         if (cancelled) return;
 
-        if (vErr || !venue?.id) {
+        if (!vRes.ok || !vJson?.ok || !vJson?.venue?.id) {
           setVenueNameFromDb(null);
           setVenueFound(false);
           setActiveEventCode(null);
@@ -80,24 +76,22 @@ export default function VenueWelcomePage() {
           return;
         }
 
-        const v = venue as DbVenue;
-        setVenueNameFromDb(v.name ?? null);
+        const venue = vJson.venue as PublicVenue;
+        setVenueNameFromDb(venue.name ?? null);
         setVenueFound(true);
 
-        // 2) Find active event for this venue
-        const { data: active, error: aErr } = await supabase
-          .from("events")
-          .select("event_code,name,status,start_at")
-          .eq("venue_id", v.id)
-          .eq("status", "active")
-          .order("start_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
+        // 2) Find active event via public server endpoint
+        const aRes = await fetch(
+          `/api/public/active-event?venueId=${encodeURIComponent(venue.id)}`,
+          { cache: "no-store" },
+        );
+
+        const aJson = await aRes.json();
 
         if (cancelled) return;
 
-        if (!aErr && active?.event_code) {
-          const code = String((active as DbEvent).event_code);
+        if (aRes.ok && aJson?.ok && aJson?.event?.event_code) {
+          const code = String((aJson.event as PublicActiveEvent).event_code);
           setActiveEventCode(code);
 
           // Redirect straight into the player funnel
