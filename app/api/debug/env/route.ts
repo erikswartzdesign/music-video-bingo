@@ -12,7 +12,11 @@ function mask(val?: string) {
 }
 
 function present(val?: string) {
-  return { present: !!val, masked: mask(val), length: val ? String(val).length : 0 };
+  return {
+    present: !!val,
+    masked: mask(val),
+    length: val ? String(val).length : 0,
+  };
 }
 
 export async function GET() {
@@ -20,7 +24,8 @@ export async function GET() {
   const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   const NEXT_PUBLIC_SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const NEXT_PUBLIC_SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const NEXT_PUBLIC_SUPABASE_ANON_KEY =
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   return NextResponse.json({
     ok: true,
