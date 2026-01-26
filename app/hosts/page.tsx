@@ -3,7 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 
 type VenueRow = {
   slug: string;
@@ -24,22 +23,19 @@ export default function HostsLandingPage() {
       setErrMsg(null);
 
       try {
-        const supabase = createClient();
-        const { data, error } = await supabase
-          .from("venues")
-          .select("slug,name")
-          .order("name", { ascending: true });
+        const res = await fetch("/api/host/venues", { cache: "no-store" });
+        const json = await res.json();
 
         if (cancelled) return;
 
-        if (error) {
+        if (!res.ok || !json?.ok) {
           setErrMsg("Could not load venues.");
           setVenues([]);
           setLoading(false);
           return;
         }
 
-        setVenues((data ?? []) as VenueRow[]);
+        setVenues((json.venues ?? []) as VenueRow[]);
         setLoading(false);
       } catch {
         if (cancelled) return;
@@ -89,7 +85,9 @@ export default function HostsLandingPage() {
         </div>
 
         <section className="bg-white/10 border border-white/15 rounded-xl p-5 sm:p-6 backdrop-blur-md shadow-lg">
-          <label className="block text-sm font-medium text-slate-200 mb-2">Search</label>
+          <label className="block text-sm font-medium text-slate-200 mb-2">
+            Search
+          </label>
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -116,7 +114,9 @@ export default function HostsLandingPage() {
                     <div className="text-sm font-semibold text-slate-100">
                       {v.name ?? v.slug}
                     </div>
-                    <div className="text-xs text-slate-400 font-mono">{v.slug}</div>
+                    <div className="text-xs text-slate-400 font-mono">
+                      {v.slug}
+                    </div>
                   </Link>
                 ))}
               </div>
