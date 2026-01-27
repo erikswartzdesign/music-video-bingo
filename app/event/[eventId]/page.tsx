@@ -794,7 +794,7 @@ export default function EventPage() {
               <div className="mt-5 flex justify-center">
                 <button
                   type="button"
-                  onClick={() => {}}
+                  onClick={handleResetProgress}
                   className="px-3 py-1 rounded-md text-xs font-semibold bg-red-900 text-red-50 border border-red-800 shadow hover:bg-orange-700 hover:border-orange-500 transition"
                 >
                   Reset Progress
