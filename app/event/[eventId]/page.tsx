@@ -47,7 +47,7 @@ type DbEventGameRow = {
 type DbPatternRow = {
   id: number;
   name: string;
-  cells: number[]; // 1..25 (excluding 13)
+  cells: number[]; // 1..25 (excluding 13) OR derived from mask
 };
 
 type LoadState = "loading" | "ready" | "error";
@@ -355,12 +355,17 @@ export default function EventPage() {
         for (const row of (json.patterns ?? []) as any[]) {
           const id = Number(row.id);
           if (!Number.isInteger(id)) continue;
+
+          const rawCells = Array.isArray(row.cells)
+            ? row.cells
+            : Array.isArray(row.mask)
+              ? row.mask
+              : [];
+
           map[id] = {
             id,
             name: String(row.name ?? `Pattern ${id}`),
-            cells: Array.isArray(row.cells)
-              ? row.cells.map((n: any) => Number(n))
-              : [],
+            cells: rawCells.map((n: any) => Number(n)),
           };
         }
         setPatternsById(map);
@@ -680,17 +685,6 @@ export default function EventPage() {
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-b from-[#000A3B] to-[#001370] text-slate-100 flex flex-col items-center relative">
-      {!isLandscape && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 text-slate-100 px-6 text-center">
-          <div className="mb-4 text-4xl">🔄</div>
-          <h2 className="text-xl font-semibold mb-2">Rotate Your Phone</h2>
-          <p className="text-sm text-slate-300 max-w-xs">
-            For the best Music Video Bingo experience, please rotate your device
-            to landscape.
-          </p>
-        </div>
-      )}
-
       <main className="w-full max-w-4xl px-4 py-6">
         <header className="mb-6 text-center">
           <h1 className="text-3xl font-bold mb-2">{headerTitle}</h1>
@@ -800,7 +794,7 @@ export default function EventPage() {
               <div className="mt-5 flex justify-center">
                 <button
                   type="button"
-                  onClick={handleResetProgress}
+                  onClick={() => {}}
                   className="px-3 py-1 rounded-md text-xs font-semibold bg-red-900 text-red-50 border border-red-800 shadow hover:bg-orange-700 hover:border-orange-500 transition"
                 >
                   Reset Progress
