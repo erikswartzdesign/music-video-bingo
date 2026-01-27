@@ -1,78 +1,105 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/lib/supabase/admin";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+type PatternRow = {
+  id: number | string;
+  name: string;
+  // local schema uses cells; prod might use mask
+  cells?: unknown;
+  mask?: unknown;
+};
+
+function toNumberArray(value: unknown): number[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((v) => (typeof v === "number" ? v : Number(v)))
+    .filter((n) => Number.isFinite(n));
+}
 
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const eventCode = (searchParams.get("eventCode") || "").trim();
+  try {
+    const { searchParams } = new URL(req.url);
+    const eventCode = searchParams.get("eventCode");
 
-  if (!eventCode) {
-    return NextResponse.json(
-      { ok: false, error: "Missing eventCode" },
-      { status: 400 },
-    );
-  }
+    if (!eventCode) {
+      return NextResponse.json(
+        { ok: false, error: "Missing eventCode" },
+        { status: 400 },
+      );
+    }
 
-  const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const supabase = createAdminClient();
 
-  if (!url || !serviceKey) {
-    return NextResponse.json(
-      { ok: false, error: "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY" },
-      { status: 500 },
-    );
-  }
-
-  const supabase = createClient(url, serviceKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-
-  // Event must be ACTIVE for players
-  const { data: event, error: eErr } = await supabase
-    .from("events")
-    .select(
-      `
+    const { data: event, error: eventError } = await supabase
+      .from("events")
+      .select(
+        `
         id,
         event_code,
-        name,
-        config_key,
+        start_at,
         status,
+        venue_id,
         event_games (
           game_number,
-          playlist_key,
           display_mode,
+          playlist_key,
           pattern_id
         )
       `,
-    )
-    .eq("event_code", eventCode)
-    .eq("status", "active")
-    .maybeSingle();
+      )
+      .eq("event_code", eventCode)
+      .maybeSingle();
 
-  if (eErr || !event?.id) {
-    return NextResponse.json(
-      { ok: false, error: "Event not found" },
-      { status: 404 },
-    );
+    if (eventError) {
+      return NextResponse.json(
+        { ok: false, error: eventError.message },
+        { status: 500 },
+      );
+    }
+
+    const status = (event?.status ?? "").toString().toLowerCase();
+    if (!event || status !== "active") {
+      return NextResponse.json({ ok: true, event: null, patterns: [] });
+    }
+
+    const { data: patternRows, error: patternsError } = await supabase
+      .from("patterns")
+      .select("*")
+      .order("name", { ascending: true });
+
+    if (patternsError) {
+      return NextResponse.json(
+        { ok: false, error: patternsError.message },
+        { status: 500 },
+      );
+    }
+
+    const patterns = (patternRows ?? []).map((p: PatternRow) => {
+      // Normalize to "cells" in 1..25 (what the UI expects)
+      // If prod has "mask" instead, treat it as cells.
+      const cells = toNumberArray(p.cells ?? p.mask ?? []);
+
+      return {
+        id: Number(p.id),
+        name: String(p.name ?? ""),
+        cells,
+      };
+    });
+
+    return NextResponse.json({
+      ok: true,
+      event: {
+        id: event.id,
+        event_code: event.event_code,
+        start_at: event.start_at,
+        status: event.status,
+        venue_id: event.venue_id,
+        event_games: event.event_games ?? [],
+      },
+      patterns,
+    });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Unknown error";
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
-
-  const { data: patterns, error: pErr } = await supabase
-    .from("patterns")
-    .select("id,name,cells")
-    .order("id", { ascending: true });
-
-  if (pErr) {
-    return NextResponse.json(
-      { ok: false, error: pErr.message },
-      { status: 500 },
-    );
-  }
-
-  return NextResponse.json({
-    ok: true,
-    event,
-    patterns: patterns ?? [],
-  });
 }
