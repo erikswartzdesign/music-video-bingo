@@ -47,7 +47,7 @@ type DbEventGameRow = {
 type DbPatternRow = {
   id: number;
   name: string;
-  cells: number[]; // 1..25 (excluding 13) OR derived from mask
+  cells: number[]; // 1..25 (excluding 13)
 };
 
 type LoadState = "loading" | "ready" | "error";
@@ -351,6 +351,7 @@ export default function EventPage() {
 
         setDbGames(games && games.length > 0 ? games : null);
 
+        // Accept either "cells" or "mask" from the endpoint
         const map: Record<number, DbPatternRow> = {};
         for (const row of (json.patterns ?? []) as any[]) {
           const id = Number(row.id);
@@ -519,7 +520,7 @@ export default function EventPage() {
     } catch {}
   }, [eventCode, eventConfig, selectedGameId, cardsByGameId]);
 
-  // Orientation detection
+  // Orientation detection (restore rotate overlay)
   const [isLandscape, setIsLandscape] = useState(true);
 
   useEffect(() => {
@@ -685,6 +686,17 @@ export default function EventPage() {
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-b from-[#000A3B] to-[#001370] text-slate-100 flex flex-col items-center relative">
+      {!isLandscape && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 text-slate-100 px-6 text-center">
+          <div className="mb-4 text-4xl">🔄</div>
+          <h2 className="text-xl font-semibold mb-2">Rotate Your Phone</h2>
+          <p className="text-sm text-slate-300 max-w-xs">
+            For the best Music Video Bingo experience, please rotate your device
+            to landscape.
+          </p>
+        </div>
+      )}
+
       <main className="w-full max-w-4xl px-4 py-6">
         <header className="mb-6 text-center">
           <h1 className="text-3xl font-bold mb-2">{headerTitle}</h1>
