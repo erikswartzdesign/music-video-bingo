@@ -24,7 +24,7 @@ export type DbPatternRow = {
 export type HostGameForm = {
   gameNumber: 1 | 2 | 3 | 4 | 5;
   playlistKey: string; // e.g. "p6"
-  displayMode: DisplayMode; // "title" | "artist"
+  displayMode: DisplayMode | ""; // "" = placeholder in form UI
   patternId: number | null; // null or 1..N
 };
 

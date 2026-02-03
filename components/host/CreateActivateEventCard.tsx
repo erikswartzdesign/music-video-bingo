@@ -25,7 +25,7 @@ type Props = {
   onResetDefaults: () => void;
   onUpdateGame: (
     gameNumber: HostGameForm["gameNumber"],
-    patch: Partial<HostGameForm>
+    patch: Partial<HostGameForm>,
   ) => void;
 
   patterns: DbPatternRow[];
@@ -139,25 +139,19 @@ export default function CreateActivateEventCard({
                   <div className="text-sm font-semibold">
                     Game {g.gameNumber}
                   </div>
-                  {g.gameNumber === 1 ? (
-                    <div className="text-[11px] text-slate-400">
-                      No pattern for Game 1
-                    </div>
-                  ) : (
-                    <div className="text-[11px] text-slate-400">
-                      Pattern optional (Games 2–5)
-                    </div>
-                  )}
+                  <div className="text-[11px] text-slate-400">
+                    Pattern optional (Games 1–5)
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {/* Playlist */}
                   <div>
                     <label className="block text-xs font-medium text-slate-300 mb-1">
-                      Playlist
+                      Choose Playlist
                     </label>
                     <select
-                      value={g.playlistKey}
+                      value={g.playlistKey ?? ""}
                       onChange={(e) =>
                         onUpdateGame(g.gameNumber, {
                           playlistKey: e.target.value,
@@ -165,6 +159,9 @@ export default function CreateActivateEventCard({
                       }
                       className="w-full rounded-md bg-black/30 border border-white/15 px-3 py-2 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-400/70"
                     >
+                      <option value="" disabled>
+                        Select
+                      </option>
                       {playlistOptions.map((opt) => (
                         <option key={opt.id} value={opt.id}>
                           {opt.label} ({opt.id})
@@ -176,10 +173,10 @@ export default function CreateActivateEventCard({
                   {/* Mode */}
                   <div>
                     <label className="block text-xs font-medium text-slate-300 mb-1">
-                      Mode
+                      Choose Artist or Title
                     </label>
                     <select
-                      value={g.displayMode}
+                      value={g.displayMode ?? ""}
                       onChange={(e) =>
                         onUpdateGame(g.gameNumber, {
                           displayMode: e.target.value as DisplayMode,
@@ -187,6 +184,9 @@ export default function CreateActivateEventCard({
                       }
                       className="w-full rounded-md bg-black/30 border border-white/15 px-3 py-2 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-400/70"
                     >
+                      <option value="" disabled>
+                        Select
+                      </option>
                       <option value="title">Title</option>
                       <option value="artist">Artist</option>
                     </select>
@@ -195,7 +195,7 @@ export default function CreateActivateEventCard({
                   {/* Pattern */}
                   <div>
                     <label className="block text-xs font-medium text-slate-300 mb-1">
-                      Pattern
+                      Choose Pattern
                     </label>
                     <select
                       value={g.patternId ?? ""}
@@ -203,17 +203,14 @@ export default function CreateActivateEventCard({
                         const raw = e.target.value;
                         const next = raw === "" ? null : Number(raw);
                         onUpdateGame(g.gameNumber, {
-                          patternId: g.gameNumber === 1 ? null : next,
+                          patternId: next,
                         });
                       }}
-                      disabled={g.gameNumber === 1}
-                      className={[
-                        "w-full rounded-md bg-black/30 border border-white/15 px-3 py-2 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-400/70",
-                        g.gameNumber === 1
-                          ? "opacity-60 cursor-not-allowed"
-                          : "",
-                      ].join(" ")}
+                      className="w-full rounded-md bg-black/30 border border-white/15 px-3 py-2 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-400/70"
                     >
+                      <option value="" disabled>
+                        Select
+                      </option>
                       <option value="">No Pattern</option>
                       {patterns.map((p) => (
                         <option key={p.id} value={p.id}>
@@ -222,7 +219,7 @@ export default function CreateActivateEventCard({
                       ))}
                     </select>
 
-                    {g.gameNumber !== 1 && g.patternId ? (
+                    {g.patternId ? (
                       <p className="mt-1 text-[11px] text-slate-400">
                         Selected:{" "}
                         <span className="font-mono">
@@ -249,13 +246,16 @@ export default function CreateActivateEventCard({
         <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-medium text-slate-300 mb-1">
-              Playlist
+              Choose Playlist
             </label>
             <select
-              value={bonusPlaylistKey}
+              value={bonusPlaylistKey ?? ""}
               onChange={(e) => setBonusPlaylistKey(e.target.value)}
               className="w-full rounded-md bg-black/30 border border-white/15 px-3 py-2 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-400/70"
             >
+              <option value="" disabled>
+                Select
+              </option>
               <option value="">No Bonus</option>
               {playlistOptions.map((opt) => (
                 <option key={opt.id} value={opt.id}>
@@ -263,14 +263,20 @@ export default function CreateActivateEventCard({
                 </option>
               ))}
             </select>
+
+            {!bonusEnabled ? (
+              <p className="mt-1 text-[11px] text-slate-400">
+                Choose a bonus playlist to enable mode.
+              </p>
+            ) : null}
           </div>
 
           <div>
             <label className="block text-xs font-medium text-slate-300 mb-1">
-              Mode
+              Choose Artist or Title
             </label>
             <select
-              value={bonusDisplayMode}
+              value={bonusEnabled ? bonusDisplayMode : ""}
               onChange={(e) =>
                 setBonusDisplayMode(e.target.value as DisplayMode)
               }
@@ -280,15 +286,12 @@ export default function CreateActivateEventCard({
                 !bonusEnabled ? "opacity-60 cursor-not-allowed" : "",
               ].join(" ")}
             >
+              <option value="" disabled>
+                Select
+              </option>
               <option value="title">Title</option>
               <option value="artist">Artist</option>
             </select>
-
-            {!bonusEnabled ? (
-              <p className="mt-1 text-[11px] text-slate-400">
-                Choose a bonus playlist to enable mode.
-              </p>
-            ) : null}
           </div>
         </div>
       </div>

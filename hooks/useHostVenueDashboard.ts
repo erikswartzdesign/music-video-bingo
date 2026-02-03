@@ -152,12 +152,9 @@ export function useHostVenueDashboard(venueSlug: string) {
       const playlistKey =
         String(row.playlist_key ?? g.playlistKey).trim() || g.playlistKey;
       const displayMode = (row.display_mode ?? g.displayMode) as any;
+
       const patternId =
-        g.gameNumber === 1
-          ? null
-          : row.pattern_id === undefined
-            ? g.patternId
-            : row.pattern_id;
+        row.pattern_id === undefined ? g.patternId : row.pattern_id;
 
       return { ...g, playlistKey, displayMode, patternId };
     });
