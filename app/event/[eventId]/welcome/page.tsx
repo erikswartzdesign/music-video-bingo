@@ -58,7 +58,9 @@ export default async function WelcomePage({
           />
         </div>
 
-        <h1 className="text-3xl font-bold mb-2">Music Video Bingo</h1>
+        <h1 className="text-3xl font-bold mb-2 text-[#029FDA]">
+          Music Video Bingo
+        </h1>
 
         <p className="text-sm text-slate-300 mb-2">
           Tonight’s event:{" "}
