@@ -73,7 +73,7 @@ export default function HostVenueDashboardPage() {
 
   return (
     <main className="min-h-screen w-full bg-gradient-to-b from-[#000A3B] to-[#001370] text-slate-100 px-6 py-10">
-      <div className="w-full max-w-6xl mx-auto">
+      <div className="w-full max-w-7xl mx-auto">
         <HostHeader venueNameDisplay={venueNameDisplay} venueSlug={venueSlug} />
 
         {errMsg && (
