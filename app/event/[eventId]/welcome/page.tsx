@@ -62,26 +62,8 @@ export default async function WelcomePage({
           Music Video Bingo
         </h1>
 
-        <p className="text-sm text-slate-300 mb-2">
-          Tonight’s event:{" "}
-          <span className="text-slate-100 font-semibold">{displayName}</span>
-        </p>
-
-        {/* Tiny status line so you can tell which mode loaded */}
-        <p className="text-xs text-slate-400 mb-6">
-          {dbConfig ? (
-            <>
-              Source: <span className="text-slate-200">Supabase</span>{" "}
-              <span className="text-slate-500">•</span> Event code:{" "}
-              <span className="font-mono text-slate-200">{eventId}</span>
-            </>
-          ) : (
-            <>
-              Source: <span className="text-slate-200">Local fallback</span>{" "}
-              <span className="text-slate-500">•</span> Event ID:{" "}
-              <span className="font-mono text-slate-200">{eventId}</span>
-            </>
-          )}
+        <p className="text-xl text-slate-100 font-semibold mb-6">
+          {displayName}
         </p>
 
         <Link
