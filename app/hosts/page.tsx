@@ -79,9 +79,6 @@ export default function HostsLandingPage() {
           <p className="text-sm text-slate-300 mt-2">
             Select your venue to manage tonight&apos;s event.
           </p>
-          <p className="text-[11px] text-slate-400 mt-2">
-            (Prototype access — we’ll add real login later.)
-          </p>
         </div>
 
         <section className="bg-white/10 border border-white/15 rounded-xl p-5 sm:p-6 backdrop-blur-md shadow-lg">
