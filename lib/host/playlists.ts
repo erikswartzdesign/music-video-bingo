@@ -6,7 +6,7 @@ export type PlaylistOption = { id: string; label: string };
  * Change this number later (e.g. 30) and the UI automatically expands.
  * For now you said you ultimately want 20.
  */
-export const MAX_PLAYLISTS = 20;
+export const MAX_PLAYLISTS = 16;
 
 export const PLAYLIST_OPTIONS: PlaylistOption[] = Array.from(
   { length: MAX_PLAYLISTS },
