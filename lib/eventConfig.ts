@@ -50,7 +50,6 @@ import {
   PLAYLIST_15,
   // keeping these in case you still have them
   PLAYLIST_16,
-  PLAYLIST_17,
 } from "./realPlaylists";
 
 // --- Demo playlists -------------------------------------------------------
