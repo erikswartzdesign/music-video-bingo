@@ -235,64 +235,24 @@ export const PLAYLISTS: Playlist[] = [
     displayMode: "artist",
     items: PLAYLIST_15,
   },
-];
-
-// --- Demo events ----------------------------------------------------------
-
-// Eventually, you'll generate these from a host UI & DB.
-// For now, we hard-code events.
-export const EVENTS: EventConfig[] = [
-  // TONIGHT (hard-coded)
   {
-    id: "WF-brewing",
-    name: "Music Video Bingo — Jan 20, 2026",
-    games: [
-      // Game 1 typically no pattern
-      { id: "game1", name: "Game 1", playlistId: "p6A", displayMode: "artist" },
-
-      // Games 2–5 with patterns (edit if you want different ones)
-      { id: "game2", name: "Game 2", playlistId: "p7T", displayMode: "title", patternCells: [6, 10, 16, 20] },
-      { id: "game3", name: "Game 3", playlistId: "p8A", displayMode: "artist",  patternCells: [2, 4, 22, 24] },
-      { id: "game4", name: "Game 4", playlistId: "p9T", displayMode: "title", patternCells: [3, 5, 9, 17, 21, 23] },
-      { id: "game5", name: "Game 5", playlistId: "p10A", displayMode: "artist",  patternCells: [1, 3, 7, 19, 23, 25] },
-    ],
-  },
-
-  // Existing
-  {
-    id: "dec-30-2025",
-    name: "Windfall Music Video Bingo",
-    games: [
-      { id: "game1", name: "Game 1", playlistId: "p1", displayMode: "artist" },
-      { id: "game2", name: "Game 2", playlistId: "p6", displayMode: "title",  patternCells: [7, 9, 17, 19] },
-      { id: "game3", name: "Game 3", playlistId: "p3", displayMode: "artist", patternCells: [3, 11, 15, 23] },
-      { id: "game4", name: "Game 4", playlistId: "p4", displayMode: "title",  patternCells: [5, 9, 11, 15, 17, 21] },
-      { id: "game5", name: "Game 5", playlistId: "p5", displayMode: "artist", patternCells: [2, 6, 8, 18, 20, 24] },
-    ],
+    id: "p16T",
+    name: "Playlist 16 – Title",
+    displayMode: "title",
+    items: PLAYLIST_16,
   },
   {
-    id: "second-demo",
-    name: "Second Demo Night at Pub Y",
-    games: [
-      { id: "game1", name: "Early Game – Titles", playlistId: "p3" },
-      { id: "game2", name: "Main Game – Artists", playlistId: "p2" },
-      { id: "game3", name: "Throwback – Titles", playlistId: "p1" },
-      { id: "game4", name: "Wildcard – Artists", playlistId: "p4" },
-      { id: "game5", name: "Late Game – Titles", playlistId: "p5" },
-    ],
-  },
-  {
-    id: "dec-22-2025",
-    name: "Music Video Bingo – Dec 22, 2025",
-    games: [
-      { id: "game1", name: "Game 1", playlistId: "p6", displayMode: "title" },
-      { id: "game2", name: "Game 2", playlistId: "p7", displayMode: "artist" },
-      { id: "game3", name: "Game 3", playlistId: "p8", displayMode: "title" },
-      { id: "game4", name: "Game 4", playlistId: "p9", displayMode: "artist" },
-      { id: "game5", name: "Game 5", playlistId: "p10", displayMode: "title" },
-    ],
+    id: "p16A",
+    name: "Playlist 16 – Artist",
+    displayMode: "artist",
+    items: PLAYLIST_16,
   },
 ];
+
+// --- Events ---------------------------------------------------------------
+// Events are now managed through Supabase via the host dashboard.
+
+export const EVENTS: EventConfig[] = [];
 
 // --- Helper functions -----------------------------------------------------
 
