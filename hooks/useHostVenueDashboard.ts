@@ -29,9 +29,7 @@ export function useHostVenueDashboard(venueSlug: string) {
 
   // Create event form
   const [eventDate, setEventDate] = useState<string>(todayISO());
-  const [configKey, setConfigKey] = useState<string>(
-    process.env.NEXT_PUBLIC_DEFAULT_CONFIG_KEY || "dec-22-2025",
-  );
+  const [configKey, setConfigKey] = useState<string>("");
   const [eventName, setEventName] = useState<string>("");
 
   // DB-driven game setup (1–5)
